@@ -91,9 +91,26 @@ class Workflow(BaseModel):
         Returns:
             Number of nodes in canvas_data.
         """
-        nodes = self.canvas_data.get("nodes", [])
-        return len(nodes)
-    
+        # Defensive: Handle None, string, or non-dict canvas_data
+        if not self.canvas_data:
+            return 0
+        
+        # If canvas_data is a string, try to parse it
+        if isinstance(self.canvas_data, str):
+            try:
+                import json
+                canvas_dict = json.loads(self.canvas_data)
+            except (json.JSONDecodeError, TypeError):
+                return 0
+        elif isinstance(self.canvas_data, dict):
+            canvas_dict = self.canvas_data
+        else:
+            return 0
+        
+        nodes = canvas_dict.get("nodes", [])
+        return len(nodes) if isinstance(nodes, list) else 0
+
+
     def get_connection_count(self) -> int:
         """
         Get the number of connections in this workflow.
@@ -101,8 +118,28 @@ class Workflow(BaseModel):
         Returns:
             Number of edges in canvas_data.
         """
-        edges = self.canvas_data.get("edges", [])
-        return len(edges)
+        # Defensive: Handle None, string, or non-dict canvas_data
+        if not self.canvas_data:
+            return 0
+        
+        # If canvas_data is a string, try to parse it
+        if isinstance(self.canvas_data, str):
+            try:
+                import json
+                canvas_dict = json.loads(self.canvas_data)
+            except (json.JSONDecodeError, TypeError):
+                return 0
+        elif isinstance(self.canvas_data, dict):
+            canvas_dict = self.canvas_data
+        else:
+            return 0
+        
+        edges = canvas_dict.get("edges", [])
+        return len(edges) if isinstance(edges, list) else 0
+    
+    
+    
+    
     
     def to_dict(self) -> dict:
         """

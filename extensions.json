@@ -1,0 +1,56 @@
+{
+    // =========================================================================
+    // FILE: easycall/.vscode/extensions.json
+    // =========================================================================
+    // Recommended extensions for optimal development experience
+    // =========================================================================
+    "recommendations": [
+        // ---------------------------------------------------------------------
+        // Python Development
+        // ---------------------------------------------------------------------
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        "ms-python.flake8",
+        "ms-python.isort",
+        // ---------------------------------------------------------------------
+        // JavaScript / TypeScript / React
+        // ---------------------------------------------------------------------
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "dsznajder.es7-react-js-snippets",
+        "formulahendry.auto-rename-tag",
+        "xabikos.javascriptsnippets",
+        // ---------------------------------------------------------------------
+        // Django
+        // ---------------------------------------------------------------------
+        "batisteo.vscode-django",
+        // ---------------------------------------------------------------------
+        // Git
+        // ---------------------------------------------------------------------
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        // ---------------------------------------------------------------------
+        // Code Quality
+        // ---------------------------------------------------------------------
+        "streetsidesoftware.code-spell-checker",
+        "usernamehw.errorlens",
+        "gruntfuggly.todo-tree",
+        // ---------------------------------------------------------------------
+        // Productivity
+        // ---------------------------------------------------------------------
+        "christian-kohler.path-intellisense",
+        "visualstudioexptteam.vscodeintellicode",
+        "mikestead.dotenv",
+        // ---------------------------------------------------------------------
+        // Documentation
+        // ---------------------------------------------------------------------
+        "njpwerner.autodocstring",
+        "yzhang.markdown-all-in-one",
+        // ---------------------------------------------------------------------
+        // Debugging
+        // ---------------------------------------------------------------------
+        "ms-vscode.js-debug-nightly"
+    ],
+    "unwantedRecommendations": []
+}

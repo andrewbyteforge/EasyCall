@@ -1,0 +1,138 @@
+{
+    // =========================================================================
+    // FILE: easycall/.vscode/launch.json
+    // =========================================================================
+    // Debug configurations for Django backend and React frontend
+    // =========================================================================
+    "version": "0.2.0",
+    "configurations": [
+        // ---------------------------------------------------------------------
+        // Django Backend Debugging
+        // ---------------------------------------------------------------------
+        {
+            "name": "Django: Runserver",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/backend/manage.py",
+            "args": [
+                "runserver",
+                "0.0.0.0:8000",
+                "--noreload"
+            ],
+            "django": true,
+            "cwd": "${workspaceFolder}/backend",
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "config.settings"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Django: Shell",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/backend/manage.py",
+            "args": [
+                "shell"
+            ],
+            "django": true,
+            "cwd": "${workspaceFolder}/backend",
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "config.settings"
+            },
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Django: Migrate",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/backend/manage.py",
+            "args": [
+                "migrate"
+            ],
+            "django": true,
+            "cwd": "${workspaceFolder}/backend",
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "config.settings"
+            },
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Django: Test All",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/backend/manage.py",
+            "args": [
+                "test"
+            ],
+            "django": true,
+            "cwd": "${workspaceFolder}/backend",
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "config.settings"
+            },
+            "console": "integratedTerminal"
+        },
+        // ---------------------------------------------------------------------
+        // Pytest Debugging
+        // ---------------------------------------------------------------------
+        {
+            "name": "Pytest: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${file}",
+                "-v",
+                "--tb=short"
+            ],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Pytest: All Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "tests/",
+                "-v",
+                "--tb=short"
+            ],
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal"
+        },
+        // ---------------------------------------------------------------------
+        // React Frontend Debugging
+        // ---------------------------------------------------------------------
+        {
+            "name": "React: Chrome",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/frontend/src",
+            "sourceMapPathOverrides": {
+                "webpack:///src/*": "${webRoot}/*"
+            }
+        },
+        {
+            "name": "React: Edge",
+            "type": "msedge",
+            "request": "launch",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/frontend/src"
+        }
+    ],
+    // -------------------------------------------------------------------------
+    // Compound Configurations (Run Multiple at Once)
+    // -------------------------------------------------------------------------
+    "compounds": [
+        {
+            "name": "Full Stack: Django + Chrome",
+            "configurations": [
+                "Django: Runserver",
+                "React: Chrome"
+            ],
+            "stopAll": true
+        }
+    ]
+}

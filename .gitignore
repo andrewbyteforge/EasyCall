@@ -1,0 +1,46 @@
+# Python 
+__pycache__/ 
+*.py[cod] 
+*$py.class 
+*.so 
+.Python 
+venv/ 
+ENV/ 
+env/ 
+ 
+# Database 
+*.db 
+*.sqlite 
+*.sqlite3 
+ 
+# Storage 
+backend/storage/uploads/* 
+backend/storage/exports/* 
+!backend/storage/uploads/.gitkeep 
+!backend/storage/exports/.gitkeep 
+ 
+# Logs 
+*.log 
+backend/logs/* 
+!backend/logs/.gitkeep 
+ 
+# Environment 
+.env 
+ 
+# IDE 
+.vscode/ 
+.idea/ 
+*.swp 
+*.swo 
+*~ 
+ 
+# OS 
+.DS_Store 
+Thumbs.db 
+ 
+# Node 
+node_modules/ 
+npm-debug.log 
+ 
+# React 
+frontend/build/ 

@@ -14,15 +14,15 @@ import { createTheme, ThemeOptions } from '@mui/material/styles';
 const colors = {
     // Background colors
     background: {
-        default: '#1e1e1e',      // Main background
-        paper: '#252526',        // Card/panel background
-        elevated: '#2d2d30',     // Elevated elements
-        canvas: '#1a1a1a',       // Canvas background
+        default: '#1e1e1e',
+        paper: '#252526',
+        elevated: '#2d2d30',
+        canvas: '#1a1a1a',
     },
 
     // Primary blues (for inputs and general UI)
     primary: {
-        main: '#1976d2',         // Blue
+        main: '#1976d2',
         light: '#42a5f5',
         dark: '#1565c0',
         contrastText: '#ffffff',

@@ -1,0 +1,124 @@
+/* src/styles/canvas.css */
+
+.react-flow {
+    background-color: #1a1a1a;
+}
+
+.react-flow__node {
+    border-radius: 8px;
+    padding: 10px;
+    border: 2px solid #333;
+    background: #2d2d2d;
+    font-family: 'Roboto', sans-serif;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.react-flow__node:hover {
+    border-color: #00897b;
+    box-shadow: 0 6px 12px rgba(0, 137, 123, 0.3);
+}
+
+.react-flow__node.selected {
+    border-color: #00897b;
+    box-shadow: 0 0 0 2px rgba(0, 137, 123, 0.3);
+}
+
+.react-flow__handle {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #333;
+    background: #00897b;
+    transition: all 0.2s ease;
+}
+
+.react-flow__handle:hover {
+    width: 16px;
+    height: 16px;
+    background: #4db6ac;
+}
+
+.react-flow__handle-connecting {
+    background: #1976d2;
+}
+
+.react-flow__edge-path {
+    stroke: #666;
+    stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+    stroke: #00897b;
+    stroke-width: 3;
+}
+
+.react-flow__minimap {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+}
+
+.react-flow__controls {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+}
+
+.react-flow__controls button {
+    background-color: #2d2d2d;
+    border-bottom: 1px solid #333;
+    color: #fff;
+    transition: background-color 0.2s;
+}
+
+.react-flow__controls button:hover {
+    background-color: #3d3d3d;
+}
+
+/* Node Palette Styles */
+.node-palette {
+    background-color: #1e1e1e;
+    border-right: 1px solid #333;
+    overflow-y: auto;
+}
+
+.node-palette-item {
+    padding: 8px 12px;
+    margin: 4px;
+    border-radius: 6px;
+    background-color: #2d2d2d;
+    border: 1px solid #333;
+    cursor: grab;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.node-palette-item:hover {
+    background-color: #3d3d3d;
+    border-color: #00897b;
+    transform: translateX(4px);
+}
+
+.node-palette-item:active {
+    cursor: grabbing;
+    transform: scale(0.98);
+}
+
+/* Node Category Colors */
+.node-configuration {
+    border-left: 4px solid #4a148c;
+}
+
+.node-input {
+    border-left: 4px solid #1976d2;
+}
+
+.node-query {
+    border-left: 4px solid #00897b;
+}
+
+.node-output {
+    border-left: 4px solid #f57c00;
+}

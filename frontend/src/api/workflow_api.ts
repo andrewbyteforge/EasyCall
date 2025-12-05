@@ -13,6 +13,20 @@ import {
     PaginatedResponse,
 } from '../types/workflow_types';
 
+export const workflowApi = {
+    listWorkflows,
+    getWorkflow,
+    createWorkflow,
+    updateWorkflow,
+    patchWorkflow,
+    deleteWorkflow,
+    saveWorkflowCanvas,
+    getWorkflowCount,
+    isWorkflowNameUnique,
+};
+
+// Also export types for convenience
+export type { Workflow, WorkflowListItem, WorkflowPayload, PaginatedResponse };
 // =============================================================================
 // WORKFLOW API FUNCTIONS
 // =============================================================================

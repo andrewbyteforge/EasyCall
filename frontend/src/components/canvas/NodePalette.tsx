@@ -3,6 +3,7 @@
 // =============================================================================
 // Node palette displaying all 21 available node types.
 // Organized by category with drag-and-drop functionality.
+// Split Query nodes by provider (Chainalysis vs TRM Labs)
 // =============================================================================
 
 import React, { useState } from 'react';
@@ -11,18 +12,14 @@ import {
     Typography,
     TextField,
     InputAdornment,
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
-    List,
-    ListItem,
-    ListItemText,
     Chip,
-    Tooltip,
+    Collapse,
+    IconButton,
 } from '@mui/material';
 import {
     Search as SearchIcon,
-    ExpandMore as ExpandMoreIcon,
+    ExpandMore,
+    ExpandLess,
 } from '@mui/icons-material';
 
 import { colors } from '../../theme';
@@ -42,34 +39,16 @@ interface NodePaletteProps {
 }
 
 // =============================================================================
-// HELPER FUNCTIONS
+// CATEGORY DEFINITIONS
 // =============================================================================
 
-/**
- * Get category display name.
- */
-function getCategoryName(category: NodeCategory): string {
-    const names: Record<NodeCategory, string> = {
-        configuration: 'Configuration',
-        input: 'Input',
-        query: 'Query',
-        output: 'Output',
-    };
-    return names[category];
-}
-
-/**
- * Get category icon.
- */
-function getCategoryIcon(category: NodeCategory): string {
-    const icons: Record<NodeCategory, string> = {
-        configuration: '⚙️',
-        input: '📥',
-        query: '🔍',
-        output: '📤',
-    };
-    return icons[category];
-}
+const categoryDisplay = [
+    { id: NodeCategory.CONFIGURATION, label: '🔑 Configuration', color: '#4a148c' },
+    { id: NodeCategory.INPUT, label: '📍 Input', color: '#1976d2' },
+    { id: 'query_chainalysis', label: '🔍 Query - Chainalysis', color: '#7b1fa2' },
+    { id: 'query_trm', label: '🔍 Query - TRM Labs', color: '#00897b' },
+    { id: NodeCategory.OUTPUT, label: '📤 Output', color: '#f57c00' },
+];
 
 // =============================================================================
 // NODE PALETTE COMPONENT
@@ -81,17 +60,19 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeSelect }) => {
     // -------------------------------------------------------------------------
 
     const [searchQuery, setSearchQuery] = useState<string>('');
-    const [expandedCategories, setExpandedCategories] = useState<string[]>([
-        'configuration',
-        'input',
-    ]);
+    const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
+        [NodeCategory.CONFIGURATION]: false,
+        [NodeCategory.INPUT]: false,
+        'query_chainalysis': false,
+        'query_trm': false,
+        [NodeCategory.OUTPUT]: false,
+    });
 
     // -------------------------------------------------------------------------
     // DATA
     // -------------------------------------------------------------------------
 
     const allNodes = getAllNodeTypes();
-    const categories: NodeCategory[] = ['configuration', 'input', 'query', 'output'];
 
     // Filter nodes by search query
     const filteredNodes = searchQuery
@@ -105,127 +86,20 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeSelect }) => {
     // HANDLERS
     // -------------------------------------------------------------------------
 
-    /**
-     * Handle accordion expand/collapse.
-     */
-    const handleCategoryToggle = (category: string) => {
-        setExpandedCategories((prev) =>
-            prev.includes(category)
-                ? prev.filter((c) => c !== category)
-                : [...prev, category]
-        );
+    const toggleCategory = (category: string) => {
+        setExpandedCategories((prev) => ({
+            ...prev,
+            [category]: !prev[category],
+        }));
     };
 
-    /**
-     * Handle drag start for node.
-     */
     const onDragStart = (
         event: React.DragEvent,
-        nodeType: NodeTypeDefinition
+        nodeType: string
     ) => {
-        event.dataTransfer.setData('application/reactflow', nodeType.type);
-        event.dataTransfer.setData(
-            'application/nodedata',
-            JSON.stringify(nodeType)
-        );
+        event.dataTransfer.setData('application/reactflow', nodeType);
         event.dataTransfer.effectAllowed = 'move';
     };
-
-    /**
-     * Handle node click.
-     */
-    const handleNodeClick = (nodeType: NodeTypeDefinition) => {
-        if (onNodeSelect) {
-            onNodeSelect(nodeType);
-        }
-    };
-
-    // -------------------------------------------------------------------------
-    // RENDER NODE ITEM
-    // -------------------------------------------------------------------------
-
-    const renderNodeItem = (node: NodeTypeDefinition) => (
-        <ListItem
-            key={node.type}
-            draggable
-            onDragStart={(e) => onDragStart(e, node)}
-            onClick={() => handleNodeClick(node)}
-            sx={{
-                cursor: 'grab',
-                borderRadius: 1,
-                mb: 0.5,
-                border: `1px solid ${colors.divider}`,
-                backgroundColor: colors.background.elevated,
-                transition: 'all 0.2s',
-                '&:hover': {
-                    backgroundColor: colors.background.paper,
-                    borderColor: node.color,
-                    transform: 'translateX(4px)',
-                },
-                '&:active': {
-                    cursor: 'grabbing',
-                },
-            }}
-        >
-            <Tooltip
-                title={node.longDescription}
-                placement="right"
-                arrow
-            >
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    {/* Node Icon */}
-                    <Box
-                        sx={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 1,
-                            backgroundColor: node.color,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            mr: 1.5,
-                            fontSize: '1.2rem',
-                        }}
-                    >
-                        {node.icon}
-                    </Box>
-
-                    {/* Node Info */}
-                    <ListItemText
-                        primary={node.name}
-                        secondary={node.description}
-                        primaryTypographyProps={{
-                            variant: 'body2',
-                            fontWeight: 500,
-                            noWrap: true,
-                        }}
-                        secondaryTypographyProps={{
-                            variant: 'caption',
-                            noWrap: true,
-                            sx: { color: colors.text.secondary },
-                        }}
-                    />
-
-                    {/* Provider Badge */}
-                    {node.provider && (
-                        <Chip
-                            label={node.provider === 'chainalysis' ? 'C' : 'T'}
-                            size="small"
-                            sx={{
-                                ml: 1,
-                                height: 20,
-                                fontSize: '0.7rem',
-                                backgroundColor:
-                                    node.provider === 'chainalysis'
-                                        ? colors.nodeColors.configuration
-                                        : colors.secondary.main,
-                            }}
-                        />
-                    )}
-                </Box>
-            </Tooltip>
-        </ListItem>
-    );
 
     // -------------------------------------------------------------------------
     // RENDER
@@ -234,10 +108,12 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeSelect }) => {
     return (
         <Box
             sx={{
+                width: '280px',
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 backgroundColor: colors.background.paper,
+                borderRight: `1px solid ${colors.divider}`,
             }}
         >
             {/* Header */}
@@ -268,74 +144,135 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeSelect }) => {
                     color="text.secondary"
                     sx={{ mt: 1, display: 'block' }}
                 >
-                    {filteredNodes.length} nodes available
+                    {allNodes.length} nodes available
                 </Typography>
             </Box>
 
             {/* Node Categories */}
-            <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
-                {searchQuery ? (
-                    // Show filtered results
-                    <List dense>
-                        {filteredNodes.map(renderNodeItem)}
-                    </List>
-                ) : (
-                    // Show by category
-                    categories.map((category) => {
-                        const categoryNodes = getNodesByCategory(category);
+            <Box sx={{ flex: 1, overflow: 'auto', p: 1.5 }}>
+                {categoryDisplay.map((cat) => {
+                    let categoryNodes: NodeTypeDefinition[];
 
-                        if (categoryNodes.length === 0) return null;
+                    // Handle the split query categories
+                    // Handle the split query categories
+                    if (cat.id === 'query_chainalysis') {
+                        categoryNodes = filteredNodes.filter(
+                            node => node.category === NodeCategory.QUERY &&
+                                node.provider === 'chainalysis'
+                        );
+                    } else if (cat.id === 'query_trm') {
+                        categoryNodes = filteredNodes.filter(
+                            node => node.category === NodeCategory.QUERY &&
+                                node.provider === 'trm'
+                        );
+                    } else {
+                        categoryNodes = getNodesByCategory(cat.id as NodeCategory);
+                        if (searchQuery) {
+                            categoryNodes = categoryNodes.filter(node =>
+                                node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                node.description.toLowerCase().includes(searchQuery.toLowerCase())
+                            );
+                        }
+                    }
 
-                        return (
-                            <Accordion
-                                key={category}
-                                expanded={expandedCategories.includes(category)}
-                                onChange={() => handleCategoryToggle(category)}
-                                disableGutters
-                                elevation={0}
+                    if (categoryNodes.length === 0 && searchQuery) return null;
+
+                    return (
+                        <Box key={cat.id} sx={{ mb: 1 }}>
+                            {/* Category Header */}
+                            <Box
+                                onClick={() => toggleCategory(cat.id)}
                                 sx={{
-                                    backgroundColor: 'transparent',
-                                    '&:before': { display: 'none' },
-                                    mb: 0.5,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '8px 12px',
+                                    cursor: 'pointer',
+                                    backgroundColor: '#2d2d30',
+                                    borderRadius: '4px',
+                                    borderLeft: `4px solid ${cat.color}`,
+                                    '&:hover': {
+                                        backgroundColor: '#333',
+                                    },
                                 }}
                             >
-                                <AccordionSummary
-                                    expandIcon={<ExpandMoreIcon />}
-                                    sx={{
-                                        minHeight: 40,
-                                        '& .MuiAccordionSummary-content': {
-                                            my: 0.5,
-                                        },
-                                    }}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        <Typography variant="body2" sx={{ mr: 1 }}>
-                                            {getCategoryIcon(category)}
-                                        </Typography>
-                                        <Typography variant="body2" fontWeight={600}>
-                                            {getCategoryName(category)}
-                                        </Typography>
-                                        <Chip
-                                            label={categoryNodes.length}
-                                            size="small"
-                                            sx={{
-                                                ml: 1,
-                                                height: 20,
-                                                fontSize: '0.7rem',
-                                            }}
-                                        />
-                                    </Box>
-                                </AccordionSummary>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                        {cat.label}
+                                    </Typography>
+                                    <Chip
+                                        label={categoryNodes.length}
+                                        size="small"
+                                        sx={{
+                                            height: '18px',
+                                            fontSize: '0.7rem',
+                                            backgroundColor: cat.color,
+                                        }}
+                                    />
+                                </Box>
+                                <IconButton size="small">
+                                    {expandedCategories[cat.id] ? (
+                                        <ExpandLess fontSize="small" />
+                                    ) : (
+                                        <ExpandMore fontSize="small" />
+                                    )}
+                                </IconButton>
+                            </Box>
 
-                                <AccordionDetails sx={{ p: 0.5, pt: 0 }}>
-                                    <List dense>
-                                        {categoryNodes.map(renderNodeItem)}
-                                    </List>
-                                </AccordionDetails>
-                            </Accordion>
-                        );
-                    })
-                )}
+                            {/* Category Content */}
+                            <Collapse in={expandedCategories[cat.id]}>
+                                <Box sx={{ mt: 1 }}>
+                                    {categoryNodes.map((node) => (
+                                        <Box
+                                            key={node.type}
+                                            draggable
+                                            onDragStart={(e) => onDragStart(e, node.type)}
+                                            className="node-palette-item"
+                                            sx={{
+                                                padding: '10px 12px',
+                                                marginBottom: '6px',
+                                                backgroundColor: '#252526',
+                                                borderRadius: '4px',
+                                                borderLeft: `3px solid ${cat.color}`,
+                                                cursor: 'grab',
+                                                transition: 'all 0.2s',
+                                                '&:hover': {
+                                                    backgroundColor: '#2d2d30',
+                                                    transform: 'translateX(4px)',
+                                                    borderLeftColor: cat.color,
+                                                },
+                                                '&:active': {
+                                                    cursor: 'grabbing',
+                                                },
+                                            }}
+                                        >
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    fontWeight: 500,
+                                                    marginBottom: '4px',
+                                                    color: '#fff',
+                                                }}
+                                            >
+                                                {node.name}
+                                            </Typography>
+                                            <Typography
+                                                variant="caption"
+                                                sx={{
+                                                    color: '#999',
+                                                    display: 'block',
+                                                    fontSize: '0.7rem',
+                                                }}
+                                            >
+                                                {node.description}
+                                            </Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+                            </Collapse>
+                        </Box>
+                    );
+                })}
             </Box>
 
             {/* Footer Info */}

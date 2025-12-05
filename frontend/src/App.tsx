@@ -1,7 +1,9 @@
-import React from 'react'; 
- 
-const App: React.FC = () => { 
-  return <div><h1>Blockchain Intelligence Workflow Builder</h1></div>; 
-}; 
- 
-export default App; 
+// src/App.tsx
+import React from 'react';
+import MainLayout from './components/layout/MainLayout';
+
+const App: React.FC = () => {
+    return <MainLayout />;
+};
+
+export default App;

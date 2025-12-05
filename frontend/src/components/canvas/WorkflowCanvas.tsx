@@ -1,10 +1,4 @@
-// =============================================================================
-// FILE: frontend/src/components/canvas/WorkflowCanvas.tsx
-// =============================================================================
-// React Flow canvas for visual workflow editing.
-// Provides drag-and-drop node placement, connections, and canvas controls.
-// =============================================================================
-
+// src/components/canvas/WorkflowCanvas.tsx
 import React, { useCallback, useRef } from 'react';
 import ReactFlow, {
     Background,
@@ -14,8 +8,6 @@ import ReactFlow, {
     Edge,
     Connection,
     addEdge,
-    useNodesState,
-    useEdgesState,
     ReactFlowProvider,
     BackgroundVariant,
     Panel,
@@ -23,6 +15,7 @@ import ReactFlow, {
 import { Box, Typography } from '@mui/material';
 
 import { colors } from '../../theme';
+import NodePalette from './NodePalette';
 import 'reactflow/dist/style.css';
 
 // =============================================================================
@@ -30,80 +23,76 @@ import 'reactflow/dist/style.css';
 // =============================================================================
 
 interface WorkflowCanvasProps {
-    initialNodes?: Node[];
-    initialEdges?: Edge[];
-    onNodesChange?: (nodes: Node[]) => void;
-    onEdgesChange?: (edges: Edge[]) => void;
+    workflow: any; // From useWorkflow hook
 }
 
 // =============================================================================
 // WORKFLOW CANVAS COMPONENT
 // =============================================================================
 
-const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
-    initialNodes = [],
-    initialEdges = [],
-    onNodesChange,
-    onEdgesChange,
-}) => {
-    // -------------------------------------------------------------------------
-    // STATE
-    // -------------------------------------------------------------------------
-
+const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({ workflow }) => {
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
-    const [nodes, setNodes, handleNodesChange] = useNodesState(initialNodes);
-    const [edges, setEdges, handleEdgesChange] = useEdgesState(initialEdges);
+
+    // Use workflow state from hook
+    const { nodes, edges, setNodes, setEdges, viewport, setViewport } = workflow;
 
     // -------------------------------------------------------------------------
     // HANDLERS
     // -------------------------------------------------------------------------
 
-    /**
-     * Handle new connection between nodes.
-     */
+    const onNodesChange = useCallback(
+        (changes: any) => {
+            console.log('Nodes changed:', changes);
+            // ReactFlow will call this when nodes are moved, deleted, etc.
+            // The changes are already applied by ReactFlow's internal state management
+        },
+        []
+    );
+
+    const onEdgesChange = useCallback(
+        (changes: any) => {
+            console.log('Edges changed:', changes);
+        },
+        []
+    );
+
     const onConnect = useCallback(
         (params: Connection) => {
             console.log('Connecting:', params);
-            setEdges((eds) => addEdge(params, eds));
+            setEdges((eds: Edge[]) => addEdge(params, eds));
         },
         [setEdges]
     );
 
-    /**
-     * Handle drag over event (for drag-and-drop from palette).
-     */
     const onDragOver = useCallback((event: React.DragEvent) => {
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
     }, []);
 
-    /**
-     * Handle drop event (node dropped from palette).
-     */
     const onDrop = useCallback(
         (event: React.DragEvent) => {
             event.preventDefault();
 
             const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
             const type = event.dataTransfer.getData('application/reactflow');
-            const nodeData = JSON.parse(
-                event.dataTransfer.getData('application/nodedata')
-            );
+            const nodeDataStr = event.dataTransfer.getData('application/nodedata');
 
-            if (typeof type === 'undefined' || !type) {
+            if (!type || !nodeDataStr) {
                 return;
             }
 
-            // Calculate position on canvas
+            const nodeData = JSON.parse(nodeDataStr);
+
+            // Calculate position on canvas accounting for zoom and pan
             const position = {
-                x: event.clientX - (reactFlowBounds?.left ?? 0),
-                y: event.clientY - (reactFlowBounds?.top ?? 0),
+                x: event.clientX - (reactFlowBounds?.left ?? 0) - (viewport?.x ?? 0),
+                y: event.clientY - (reactFlowBounds?.top ?? 0) - (viewport?.y ?? 0),
             };
 
             // Create new node
             const newNode: Node = {
                 id: `${type}-${Date.now()}`,
-                type: 'default', // TODO: Custom node types
+                type: 'default',
                 position,
                 data: {
                     label: nodeData.name,
@@ -115,148 +104,133 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             };
 
             console.log('Dropped node:', newNode);
-            setNodes((nds) => nds.concat(newNode));
+            setNodes((nds: Node[]) => [...nds, newNode]);
         },
-        [setNodes]
+        [setNodes, viewport]
     );
 
-    /**
-     * Handle node selection.
-     */
     const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
         console.log('Node clicked:', node);
         // TODO: Open node configuration dialog
     }, []);
 
-    /**
-     * Handle edge click.
-     */
     const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
         console.log('Edge clicked:', edge);
     }, []);
-
-    // -------------------------------------------------------------------------
-    // CALLBACKS FOR PARENT
-    // -------------------------------------------------------------------------
-
-    // Notify parent of node changes
-    React.useEffect(() => {
-        if (onNodesChange) {
-            onNodesChange(nodes);
-        }
-    }, [nodes, onNodesChange]);
-
-    // Notify parent of edge changes
-    React.useEffect(() => {
-        if (onEdgesChange) {
-            onEdgesChange(edges);
-        }
-    }, [edges, onEdgesChange]);
 
     // -------------------------------------------------------------------------
     // RENDER
     // -------------------------------------------------------------------------
 
     return (
-        <Box
-            ref={reactFlowWrapper}
-            sx={{
-                width: '100%',
-                height: '100%',
-                backgroundColor: colors.background.canvas,
-            }}
-        >
-            <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={handleNodesChange}
-                onEdgesChange={handleEdgesChange}
-                onConnect={onConnect}
-                onDrop={onDrop}
-                onDragOver={onDragOver}
-                onNodeClick={onNodeClick}
-                onEdgeClick={onEdgeClick}
-                fitView
-                attributionPosition="bottom-left"
-                defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-                minZoom={0.1}
-                maxZoom={2}
-                snapToGrid={true}
-                snapGrid={[15, 15]}
+        <Box sx={{ display: 'flex', width: '100%', height: '100%' }}>
+            {/* Left Panel - Node Palette */}
+            <Box
+                sx={{
+                    width: 280,
+                    borderRight: `1px solid ${colors.divider}`,
+                    overflow: 'hidden',
+                }}
             >
-                {/* Grid Background */}
-                <Background
-                    variant={BackgroundVariant.Dots}
-                    gap={15}
-                    size={1}
-                    color={colors.divider}
-                />
+                <NodePalette />
+            </Box>
 
-                {/* Canvas Controls (zoom, fit, etc.) */}
-                <Controls
-                    showInteractive={false}
-                    style={{
-                        backgroundColor: colors.background.paper,
-                        border: `1px solid ${colors.divider}`,
-                    }}
-                />
+            {/* Right Panel - Canvas */}
+            <Box
+                ref={reactFlowWrapper}
+                sx={{
+                    flex: 1,
+                    backgroundColor: colors.background.canvas,
+                }}
+            >
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    onDrop={onDrop}
+                    onDragOver={onDragOver}
+                    onNodeClick={onNodeClick}
+                    onEdgeClick={onEdgeClick}
+                    fitView
+                    attributionPosition="bottom-left"
+                    defaultViewport={viewport}
+                    minZoom={0.1}
+                    maxZoom={2}
+                    snapToGrid={true}
+                    snapGrid={[15, 15]}
+                    deleteKeyCode="Delete"
+                    nodesDraggable={true}  // ← ADD THIS LINE
+                    elementsSelectable={true}  // ← ADD THIS LINE TOO
+                >
+                    <Background
+                        variant={BackgroundVariant.Dots}
+                        gap={15}
+                        size={1}
+                        color={colors.divider}
+                    />
 
-                {/* Minimap */}
-                <MiniMap
-                    nodeColor={(node) => {
-                        return node.data.color || colors.primary.main;
-                    }}
-                    style={{
-                        backgroundColor: colors.background.paper,
-                        border: `1px solid ${colors.divider}`,
-                    }}
-                    maskColor={`${colors.background.canvas}cc`}
-                />
-
-                {/* Info Panel */}
-                <Panel position="top-left">
-                    <Box
-                        sx={{
+                    <Controls
+                        showInteractive={false}
+                        style={{
                             backgroundColor: colors.background.paper,
                             border: `1px solid ${colors.divider}`,
-                            borderRadius: 1,
-                            p: 1.5,
-                            minWidth: 200,
                         }}
-                    >
-                        <Typography variant="body2" color="text.secondary">
-                            Nodes: {nodes.length}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            Connections: {edges.length}
-                        </Typography>
-                    </Box>
-                </Panel>
+                    />
 
-                {/* Empty State */}
-                {nodes.length === 0 && (
-                    <Panel position="top-center">
+                    <MiniMap
+                        nodeColor={(node) => node.data.color || colors.primary.main}
+                        style={{
+                            backgroundColor: colors.background.paper,
+                            border: `1px solid ${colors.divider}`,
+                        }}
+                        maskColor={`${colors.background.canvas}cc`}
+                    />
+
+                    <Panel position="top-left">
                         <Box
                             sx={{
-                                backgroundColor: `${colors.background.paper}ee`,
+                                backgroundColor: colors.background.paper,
                                 border: `1px solid ${colors.divider}`,
                                 borderRadius: 1,
-                                p: 3,
-                                textAlign: 'center',
-                                maxWidth: 400,
+                                p: 1.5,
+                                minWidth: 200,
                             }}
                         >
-                            <Typography variant="h6" gutterBottom>
-                                Welcome to Workflow Builder
+                            <Typography variant="body2" color="text.secondary">
+                                Nodes: {nodes.length}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                                Drag nodes from the left panel onto the canvas to start building
-                                your blockchain intelligence workflow.
+                                Connections: {edges.length}
                             </Typography>
                         </Box>
                     </Panel>
-                )}
-            </ReactFlow>
+
+                    {nodes.length === 0 && (
+                        <Panel position="top-center">
+                            <Box
+                                sx={{
+                                    backgroundColor: `${colors.background.paper}ee`,
+                                    border: `1px solid ${colors.divider}`,
+                                    borderRadius: 1,
+                                    p: 3,
+                                    textAlign: 'center',
+                                    maxWidth: 400,
+                                }}
+                            >
+                                <Typography variant="h6" gutterBottom>
+                                    Welcome to Workflow Builder
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Drag nodes from the left panel onto the canvas to start
+                                    building your blockchain intelligence workflow.
+                                </Typography>
+                            </Box>
+                        </Panel>
+                    )}
+                </ReactFlow>
+            </Box>
         </Box>
     );
 };

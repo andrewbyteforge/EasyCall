@@ -104,7 +104,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.CREDENTIALS_CHAINALYSIS]: {
         type: NodeType.CREDENTIALS_CHAINALYSIS,
-        category: 'configuration',
+        category: NodeCategory.CONFIGURATION,
         name: 'Chainalysis Credentials',
         description: 'Override global Chainalysis API credentials',
         longDescription: 'Provide workflow-specific Chainalysis Reactor API credentials. If not connected, query nodes use global settings.',
@@ -150,7 +150,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.CREDENTIALS_TRM]: {
         type: NodeType.CREDENTIALS_TRM,
-        category: 'configuration',
+        category: NodeCategory.CONFIGURATION,
         name: 'TRM Labs Credentials',
         description: 'Override global TRM Labs API credentials',
         longDescription: 'Provide workflow-specific TRM Labs API credentials. If not connected, query nodes use global settings.',
@@ -200,7 +200,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.SINGLE_ADDRESS]: {
         type: NodeType.SINGLE_ADDRESS,
-        category: 'input',
+        category: NodeCategory.INPUT,
         name: 'Single Address Input',
         description: 'Manually enter a single cryptocurrency address',
         longDescription: 'Input a single blockchain address for investigation. Validates format based on selected blockchain.',
@@ -251,7 +251,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.BATCH_INPUT]: {
         type: NodeType.BATCH_INPUT,
-        category: 'input',
+        category: NodeCategory.INPUT,
         name: 'Batch Address Input',
         description: 'Upload file with multiple addresses',
         longDescription: 'Import multiple blockchain addresses from CSV, Excel, PDF, or Word documents. Supports up to 10,000 addresses.',
@@ -320,7 +320,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.TRANSACTION_HASH]: {
         type: NodeType.TRANSACTION_HASH,
-        category: 'input',
+        category: NodeCategory.INPUT,
         name: 'Transaction Hash Input',
         description: 'Enter a blockchain transaction hash',
         longDescription: 'Input a transaction hash for detailed transaction analysis.',
@@ -373,7 +373,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.CHAINALYSIS_CLUSTER_INFO]: {
         type: NodeType.CHAINALYSIS_CLUSTER_INFO,
-        category: 'query',
+        category: NodeCategory.QUERY,
         name: 'Cluster Info',
         description: 'Get cluster name and category (Chainalysis)',
         longDescription: 'Identifies which entity cluster an address belongs to. Returns cluster name, category, and root address.',
@@ -438,7 +438,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.CHAINALYSIS_CLUSTER_BALANCE]: {
         type: NodeType.CHAINALYSIS_CLUSTER_BALANCE,
-        category: 'query',
+        category: NodeCategory.QUERY,
         name: 'Cluster Balance',
         description: 'Get balance and transfer statistics (Chainalysis)',
         longDescription: 'Returns comprehensive balance and transfer statistics for a cluster.',
@@ -499,7 +499,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
     // Placeholder stubs for remaining Chainalysis nodes
     [NodeType.CHAINALYSIS_CLUSTER_COUNTERPARTIES]: {
         type: NodeType.CHAINALYSIS_CLUSTER_COUNTERPARTIES,
-        category: 'query',
+        category: NodeCategory.QUERY,
         name: 'Cluster Counterparties',
         description: 'Get transaction counterparties (Chainalysis)',
         longDescription: 'Returns entities that transacted with this cluster.',
@@ -528,7 +528,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.CHAINALYSIS_TRANSACTION_DETAILS]: {
         type: NodeType.CHAINALYSIS_TRANSACTION_DETAILS,
-        category: 'query',
+        category: NodeCategory.QUERY,
         name: 'Transaction Details',
         description: 'Get transaction details (Chainalysis)',
         longDescription: 'Returns detailed information about a specific transaction.',
@@ -557,7 +557,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.CHAINALYSIS_EXPOSURE_CATEGORY]: {
         type: NodeType.CHAINALYSIS_EXPOSURE_CATEGORY,
-        category: 'query',
+        category: NodeCategory.QUERY,
         name: 'Exposure by Category',
         description: 'Get risk exposure by category (Chainalysis)',
         longDescription: 'Returns risk exposure analysis by category.',
@@ -587,7 +587,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.CHAINALYSIS_EXPOSURE_SERVICE]: {
         type: NodeType.CHAINALYSIS_EXPOSURE_SERVICE,
-        category: 'query',
+        category: NodeCategory.QUERY,
         name: 'Exposure by Service',
         description: 'Get risk exposure by service (Chainalysis)',
         longDescription: 'Returns risk exposure analysis by service.',
@@ -620,7 +620,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.TRM_ADDRESS_ATTRIBUTION]: {
         type: NodeType.TRM_ADDRESS_ATTRIBUTION,
-        category: 'query',
+        category: NodeCategory.QUERY,
         name: 'Address Attribution',
         description: 'Get entities for address (TRM Labs)',
         longDescription: 'Returns entities associated with a blockchain address.',
@@ -641,7 +641,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.TRM_TOTAL_EXPOSURE]: {
         type: NodeType.TRM_TOTAL_EXPOSURE,
-        category: 'query',
+        category: NodeCategory.QUERY,
         name: 'Total Exposure',
         description: 'Get total exposure analysis (TRM Labs)',
         longDescription: 'Returns exposure to different entities.',
@@ -663,7 +663,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
     // Placeholder stubs for remaining TRM nodes
     [NodeType.TRM_ADDRESS_SUMMARY]: {
         type: NodeType.TRM_ADDRESS_SUMMARY,
-        category: 'query',
+        category: NodeCategory.QUERY,
         name: 'Address Summary',
         description: 'Get address metrics (TRM Labs)',
         longDescription: 'Returns summary metrics for address.',
@@ -682,7 +682,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.TRM_ADDRESS_TRANSFERS]: {
         type: NodeType.TRM_ADDRESS_TRANSFERS,
-        category: 'query',
+        category: NodeCategory.QUERY,
         name: 'Address Transfers',
         description: 'Get transfer history (TRM Labs)',
         longDescription: 'Returns list of transfers for address.',
@@ -701,7 +701,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.TRM_NETWORK_INTELLIGENCE]: {
         type: NodeType.TRM_NETWORK_INTELLIGENCE,
-        category: 'query',
+        category: NodeCategory.QUERY,
         name: 'Network Intelligence',
         description: 'Get network intelligence (TRM Labs)',
         longDescription: 'Returns network intelligence data.',
@@ -724,7 +724,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.TXT_EXPORT]: {
         type: NodeType.TXT_EXPORT,
-        category: 'output',
+        category: NodeCategory.OUTPUT,
         name: 'Export to TXT',
         description: 'Export results as text file',
         longDescription: 'Generates a downloadable text file with workflow results.',
@@ -750,7 +750,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.EXCEL_EXPORT]: {
         type: NodeType.EXCEL_EXPORT,
-        category: 'output',
+        category: NodeCategory.OUTPUT,
         name: 'Export to Excel',
         description: 'Export results as Excel spreadsheet',
         longDescription: 'Generates a formatted Excel file with workflow results.',
@@ -776,7 +776,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.JSON_EXPORT]: {
         type: NodeType.JSON_EXPORT,
-        category: 'output',
+        category: NodeCategory.OUTPUT,
         name: 'Export to JSON',
         description: 'Export results as JSON file',
         longDescription: 'Generates a JSON file with workflow results.',
@@ -802,7 +802,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.CSV_EXPORT]: {
         type: NodeType.CSV_EXPORT,
-        category: 'output',
+        category: NodeCategory.OUTPUT,
         name: 'Export to CSV',
         description: 'Export results as CSV file',
         longDescription: 'Generates a CSV file with workflow results.',
@@ -828,7 +828,7 @@ export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
 
     [NodeType.CONSOLE_LOG]: {
         type: NodeType.CONSOLE_LOG,
-        category: 'output',
+        category: NodeCategory.OUTPUT,
         name: 'Console Log',
         description: 'Display results in output panel',
         longDescription: 'Shows results in the workflow output panel for quick viewing.',
@@ -875,3 +875,7 @@ export function getNodesByCategory(category: NodeCategory): NodeTypeDefinition[]
 export function getAllNodeTypes(): NodeTypeDefinition[] {
     return Object.values(NODE_REGISTRY);
 }
+
+
+// Re-export for convenience
+export { NodeCategory };

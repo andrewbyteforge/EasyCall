@@ -1,186 +1,317 @@
-// src/components/layout/NavigationBar.tsx
-import React, { useState } from 'react';
+// =============================================================================
+// FILE: frontend/src/components/layout/NavigationBar.tsx
+// =============================================================================
+// Top navigation bar with workflow controls.
+// Contains Save, Load, New, Run buttons and settings access.
+// =============================================================================
+
+import React from 'react';
 import {
     AppBar,
     Toolbar,
-    Typography,
-    Button,
     Box,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-    List,
-    ListItem,
-    ListItemButton,
-    ListItemText,
+    Button,
     IconButton,
+    Tooltip,
+    Typography,
+    Divider,
 } from '@mui/material';
 import {
-    Add as AddIcon,
     Save as SaveIcon,
-    FolderOpen as FolderOpenIcon,
-    PlayArrow as PlayArrowIcon,
+    FolderOpen as LoadIcon,
+    PlayArrow as RunIcon,
+    NoteAdd as NewIcon,
     Settings as SettingsIcon,
-    Terminal as TerminalIcon,
+    Visibility as ShowOutputIcon,
+    VisibilityOff as HideOutputIcon,
 } from '@mui/icons-material';
-import { workflowApi } from '../../api/workflow_api';
+
+// =============================================================================
+// TYPES
+// =============================================================================
 
 interface NavigationBarProps {
-    workflow: any; // Will be properly typed later
+    /**
+     * Handler for saving the current workflow
+     */
+    onSave: () => void;
+
+    /**
+     * Handler for loading a workflow
+     */
+    onLoad: () => void;
+
+    /**
+     * Handler for creating a new workflow
+     */
+    onNew: () => void;
+
+    /**
+     * Handler for running/executing the workflow
+     */
+    onRun: () => void;
+
+    /**
+     * Handler for opening settings dialog
+     */
+    onSettings: () => void;
+
+    /**
+     * Handler for toggling output panel visibility
+     */
     onToggleOutput: () => void;
+
+    /**
+     * Whether the output panel is currently visible
+     */
+    outputPanelVisible: boolean;
+
+    /**
+     * Optional: Current workflow name to display
+     */
+    workflowName?: string;
+
+    /**
+     * Optional: Disable run button if workflow is invalid
+     */
+    canRun?: boolean;
+
+    /**
+     * Optional: Disable save button if no changes
+     */
+    hasUnsavedChanges?: boolean;
 }
 
-const NavigationBar: React.FC<NavigationBarProps> = ({ workflow, onToggleOutput }) => {
-    const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-    const [loadDialogOpen, setLoadDialogOpen] = useState(false);
-    const [workflowName, setWorkflowName] = useState(workflow.workflowName);
-    const [availableWorkflows, setAvailableWorkflows] = useState<any[]>([]);
+// =============================================================================
+// NAVIGATION BAR COMPONENT
+// =============================================================================
 
-    const handleSave = async () => {
-        try {
-            await workflow.saveWorkflow(workflowName);
-            setSaveDialogOpen(false);
-            alert(`Workflow "${workflowName}" saved successfully!`);
-        } catch (error) {
-            alert('Failed to save workflow');
-            console.error(error);
-        }
-    };
-
-    const handleOpenLoadDialog = async () => {
-        try {
-            const workflows = await workflowApi.listWorkflows();
-            setAvailableWorkflows(workflows);
-            setLoadDialogOpen(true);
-        } catch (error) {
-            alert('Failed to load workflows');
-            console.error(error);
-        }
-    };
-
-    const handleLoad = async (workflowId: string) => {
-        try {
-            await workflow.loadWorkflow(workflowId);
-            setLoadDialogOpen(false);
-            alert('Workflow loaded successfully!');
-        } catch (error) {
-            alert('Failed to load workflow');
-            console.error(error);
-        }
-    };
-
+const NavigationBar: React.FC<NavigationBarProps> = ({
+    onSave,
+    onLoad,
+    onNew,
+    onRun,
+    onSettings,
+    onToggleOutput,
+    outputPanelVisible,
+    workflowName = 'Untitled Workflow',
+    canRun = true,
+    hasUnsavedChanges = false,
+}) => {
     return (
-        <>
-            <AppBar position="static">
-                <Toolbar>
-                    <Typography variant="h6" component="div" sx={{ flexGrow: 0, mr: 4 }}>
-                        📊 Blockchain Intelligence Workflow Builder
-                    </Typography>
+        <AppBar
+            position="static"
+            elevation={0}
+            sx={{
+                backgroundColor: 'background.paper',
+                borderBottom: 1,
+                borderColor: 'divider',
+            }}
+        >
+            <Toolbar
+                sx={{
+                    minHeight: '64px !important',
+                    padding: '0 16px !important',
+                }}
+            >
+                {/* ================================================================= */}
+                {/* LEFT SECTION - App Title & Workflow Name */}
+                {/* ================================================================= */}
 
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+                    {/* App Icon & Title */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                            sx={{
+                                fontSize: '1.5rem',
+                                lineHeight: 1,
+                            }}
+                        >
+                            🔗
+                        </Box>
+                        <Typography
+                            variant="h6"
+                            component="h1"
+                            sx={{
+                                fontWeight: 600,
+                                color: 'text.primary',
+                                fontSize: '1.1rem',
+                            }}
+                        >
+                            EasyCall
+                        </Typography>
+                    </Box>
+
+                    <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+                    {/* Current Workflow Name */}
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            color: 'text.secondary',
+                            fontSize: '0.875rem',
+                        }}
+                    >
+                        {workflowName}
+                        {hasUnsavedChanges && (
+                            <Box
+                                component="span"
+                                sx={{
+                                    ml: 1,
+                                    color: 'warning.main',
+                                    fontSize: '0.75rem',
+                                }}
+                            >
+                                • Unsaved
+                            </Box>
+                        )}
+                    </Typography>
+                </Box>
+
+                {/* ================================================================= */}
+                {/* CENTER SECTION - Primary Actions */}
+                {/* ================================================================= */}
+
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    {/* New Workflow Button */}
+                    <Tooltip title="Create new workflow (Ctrl+N)" arrow>
                         <Button
-                            color="inherit"
-                            startIcon={<AddIcon />}
-                            onClick={workflow.newWorkflow}
+                            variant="outlined"
+                            size="small"
+                            startIcon={<NewIcon />}
+                            onClick={onNew}
+                            sx={{
+                                textTransform: 'none',
+                                borderColor: 'divider',
+                                color: 'text.primary',
+                                '&:hover': {
+                                    borderColor: 'primary.main',
+                                    backgroundColor: 'action.hover',
+                                },
+                            }}
                         >
                             New
                         </Button>
+                    </Tooltip>
 
+                    {/* Load Workflow Button */}
+                    <Tooltip title="Load workflow (Ctrl+O)" arrow>
                         <Button
-                            color="inherit"
-                            startIcon={<FolderOpenIcon />}
-                            onClick={handleOpenLoadDialog}
+                            variant="outlined"
+                            size="small"
+                            startIcon={<LoadIcon />}
+                            onClick={onLoad}
+                            sx={{
+                                textTransform: 'none',
+                                borderColor: 'divider',
+                                color: 'text.primary',
+                                '&:hover': {
+                                    borderColor: 'primary.main',
+                                    backgroundColor: 'action.hover',
+                                },
+                            }}
                         >
                             Load
                         </Button>
+                    </Tooltip>
 
+                    {/* Save Workflow Button */}
+                    <Tooltip title="Save workflow (Ctrl+S)" arrow>
                         <Button
-                            color="inherit"
+                            variant="contained"
+                            size="small"
                             startIcon={<SaveIcon />}
-                            onClick={() => setSaveDialogOpen(true)}
+                            onClick={onSave}
+                            disabled={!hasUnsavedChanges}
+                            sx={{
+                                textTransform: 'none',
+                                boxShadow: 'none',
+                                '&:hover': {
+                                    boxShadow: 'none',
+                                },
+                            }}
                         >
                             Save
                         </Button>
+                    </Tooltip>
 
-                        <Button
-                            color="inherit"
-                            startIcon={<PlayArrowIcon />}
-                            disabled
+                    <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+                    {/* Run Workflow Button */}
+                    <Tooltip
+                        title={
+                            canRun
+                                ? 'Execute workflow (F5)'
+                                : 'Add nodes to canvas before running'  // ← Updated!
+                        }
+                        arrow
+                    >
+                        <span>
+                            <Button
+                                variant="contained"
+                                size="small"
+                                startIcon={<RunIcon />}
+                                onClick={onRun}
+                                disabled={!canRun}
+                                color="success"
+                                sx={{
+                                    textTransform: 'none',
+                                    boxShadow: 'none',
+                                    '&:hover': {
+                                        boxShadow: 'none',
+                                    },
+                                }}
+                            >
+                                Run
+                            </Button>
+                        </span>
+                    </Tooltip>
+                </Box>
+
+                {/* ================================================================= */}
+                {/* RIGHT SECTION - View & Settings */}
+                {/* ================================================================= */}
+
+                <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                    {/* Toggle Output Panel Button */}
+                    <Tooltip
+                        title={outputPanelVisible ? 'Hide output panel' : 'Show output panel'}
+                        arrow
+                    >
+                        <IconButton
+                            size="small"
+                            onClick={onToggleOutput}
+                            sx={{
+                                color: outputPanelVisible ? 'secondary.main' : 'text.secondary',
+                                '&:hover': {
+                                    backgroundColor: 'action.hover',
+                                },
+                            }}
                         >
-                            Run
-                        </Button>
+                            {outputPanelVisible ? <HideOutputIcon /> : <ShowOutputIcon />}
+                        </IconButton>
+                    </Tooltip>
 
-                        <Button
-                            color="inherit"
-                            startIcon={<SettingsIcon />}
-                            disabled
+                    <Divider orientation="vertical" flexItem />
+
+                    {/* Settings Button */}
+                    <Tooltip title="Application settings" arrow>
+                        <IconButton
+                            size="small"
+                            onClick={onSettings}
+                            sx={{
+                                color: 'text.secondary',
+                                '&:hover': {
+                                    backgroundColor: 'action.hover',
+                                },
+                            }}
                         >
-                            Settings
-                        </Button>
-                    </Box>
-
-                    <Box sx={{ flexGrow: 1 }} />
-
-                    <IconButton color="inherit" onClick={onToggleOutput}>
-                        <TerminalIcon />
-                    </IconButton>
-                </Toolbar>
-            </AppBar>
-
-            {/* Save Dialog */}
-            <Dialog open={saveDialogOpen} onClose={() => setSaveDialogOpen(false)}>
-                <DialogTitle>Save Workflow</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        autoFocus
-                        margin="dense"
-                        label="Workflow Name"
-                        fullWidth
-                        value={workflowName}
-                        onChange={(e) => setWorkflowName(e.target.value)}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setSaveDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleSave} variant="contained">
-                        Save
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Load Dialog */}
-            <Dialog open={loadDialogOpen} onClose={() => setLoadDialogOpen(false)}>
-                <DialogTitle>Load Workflow</DialogTitle>
-                <DialogContent sx={{ minWidth: 400 }}>
-                    <List>
-                        {availableWorkflows.length === 0 ? (
-                            <ListItem>
-                                <ListItemText primary="No saved workflows" />
-                            </ListItem>
-                        ) : (
-                            availableWorkflows.map((wf) => (
-                                <ListItemButton
-                                    key={wf.uuid}
-                                    onClick={() => handleLoad(wf.uuid)}
-                                >
-                                    <ListItemText
-                                        primary={wf.name}
-                                        secondary={`${wf.node_count} nodes • Updated: ${new Date(
-                                            wf.updated_at
-                                        ).toLocaleDateString()}`}
-                                    />
-                                </ListItemButton>
-                            ))
-                        )}
-                    </List>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setLoadDialogOpen(false)}>Cancel</Button>
-                </DialogActions>
-            </Dialog>
-        </>
+                            <SettingsIcon />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
+            </Toolbar>
+        </AppBar>
     );
 };
 

@@ -62,6 +62,11 @@ const colors = {
     // Border and divider
     divider: '#3e3e42',
     border: '#3e3e42',
+
+    // ADDED: Additional utility colors
+    hover: 'rgba(255, 255, 255, 0.08)',
+    selected: 'rgba(25, 118, 210, 0.16)',
+    focus: 'rgba(25, 118, 210, 0.24)',
 };
 
 // =============================================================================
@@ -104,6 +109,11 @@ const themeOptions: ThemeOptions = {
         },
         info: {
             main: colors.status.info,
+        },
+        action: {
+            hover: colors.hover,
+            selected: colors.selected,
+            focus: colors.focus,
         },
     },
 
@@ -162,6 +172,52 @@ const themeOptions: ThemeOptions = {
         button: {
             textTransform: 'none', // Don't uppercase buttons
             fontWeight: 500,
+        },
+    },
+
+    // =============================================================================
+    // ADDED: SPACING & SHAPE CONFIGURATION
+    // =============================================================================
+
+    spacing: 8, // Base spacing unit (8px)
+
+    shape: {
+        borderRadius: 4, // Default border radius for components
+    },
+
+    // =============================================================================
+    // ADDED: BREAKPOINTS (for responsive design)
+    // =============================================================================
+
+    breakpoints: {
+        values: {
+            xs: 0,
+            sm: 600,
+            md: 960,
+            lg: 1280,
+            xl: 1920,
+        },
+    },
+
+    // =============================================================================
+    // ADDED: TRANSITIONS (for smooth animations)
+    // =============================================================================
+
+    transitions: {
+        duration: {
+            shortest: 150,
+            shorter: 200,
+            short: 250,
+            standard: 300,
+            complex: 375,
+            enteringScreen: 225,
+            leavingScreen: 195,
+        },
+        easing: {
+            easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            easeOut: 'cubic-bezier(0.0, 0, 0.2, 1)',
+            easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
+            sharp: 'cubic-bezier(0.4, 0, 0.6, 1)',
         },
     },
 
@@ -288,6 +344,30 @@ const themeOptions: ThemeOptions = {
             styleOverrides: {
                 paper: {
                     border: `1px solid ${colors.divider}`,
+                },
+            },
+        },
+
+        // ADDED: Additional component overrides
+        MuiIconButton: {
+            styleOverrides: {
+                root: {
+                    '&:hover': {
+                        backgroundColor: colors.hover,
+                    },
+                },
+            },
+        },
+
+        MuiListItem: {
+            styleOverrides: {
+                root: {
+                    '&.Mui-selected': {
+                        backgroundColor: colors.selected,
+                        '&:hover': {
+                            backgroundColor: colors.selected,
+                        },
+                    },
                 },
             },
         },

@@ -1,30 +1,29 @@
 // =============================================================================
 // FILE: frontend/src/components/canvas/WorkflowCanvas.tsx
 // =============================================================================
-// Main React Flow canvas component for visual workflow editing.
-// Handles node/edge interactions, drag-and-drop, and canvas controls.
+// React Flow canvas with UE5-style grid and custom nodes.
 // =============================================================================
 
-import React, { useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
+import { Box } from '@mui/material';
 import ReactFlow, {
-    Node,
-    Edge,
-    Connection,
     Background,
     Controls,
     MiniMap,
     BackgroundVariant,
-    NodeTypes,
-    ConnectionMode,
+    ReactFlowProvider,
     OnNodesChange,
     OnEdgesChange,
     OnConnect,
+    Node,
+    Edge,
+    ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Box } from '@mui/material';
+import UE5Node from '../nodes/UE5Node';
 
 // =============================================================================
-// PROPS INTERFACE
+// TYPES
 // =============================================================================
 
 interface WorkflowCanvasProps {
@@ -33,15 +32,12 @@ interface WorkflowCanvasProps {
     onNodesChange: OnNodesChange;
     onEdgesChange: OnEdgesChange;
     onConnect: OnConnect;
+    onAddNode: (nodeType: string, position: { x: number; y: number }) => void;
 }
 
-// =============================================================================
-// NODE TYPES (Placeholder - will be expanded in Phase 3)
-// =============================================================================
-
-const nodeTypes: NodeTypes = {
-    // Custom node types will be registered here in Phase 3
-    // For now, React Flow will use default nodes
+// ⭐ REGISTER CUSTOM NODE TYPES
+const nodeTypes = {
+    default: UE5Node,
 };
 
 // =============================================================================
@@ -54,109 +50,43 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     onNodesChange,
     onEdgesChange,
     onConnect,
+    onAddNode,
 }) => {
     // ---------------------------------------------------------------------------
-    // STYLES
+    // REFS & STATE
     // ---------------------------------------------------------------------------
 
-    const canvasStyles = {
-        width: '100%',
-        height: '100%',
-        backgroundColor: '#1a1a1a',
-        '& .react-flow__node': {
-            backgroundColor: '#2d2d30',
-            border: '1px solid #3e3e42',
-            borderRadius: '4px',
-            padding: '10px',
-            fontSize: '12px',
-            color: '#cccccc',
-        },
-        '& .react-flow__node.selected': {
-            border: '2px solid #00897b',
-            boxShadow: '0 0 8px rgba(0, 137, 123, 0.4)',
-        },
-        '& .react-flow__edge': {
-            stroke: '#3e3e42',
-            strokeWidth: 2,
-        },
-        '& .react-flow__edge.selected': {
-            stroke: '#00897b',
-            strokeWidth: 3,
-        },
-        '& .react-flow__edge-path': {
-            stroke: '#3e3e42',
-            strokeWidth: 2,
-        },
-        '& .react-flow__handle': {
-            width: '10px',
-            height: '10px',
-            backgroundColor: '#00897b',
-            border: '2px solid #1a1a1a',
-        },
-        '& .react-flow__handle:hover': {
-            backgroundColor: '#26a69a',
-        },
-        '& .react-flow__controls': {
-            backgroundColor: '#252526',
-            border: '1px solid #3e3e42',
-            borderRadius: '4px',
-            '& button': {
-                backgroundColor: '#252526',
-                borderBottom: '1px solid #3e3e42',
-                color: '#cccccc',
-                '&:hover': {
-                    backgroundColor: '#2d2d30',
-                },
-            },
-        },
-        '& .react-flow__minimap': {
-            backgroundColor: '#1e1e1e',
-            border: '1px solid #3e3e42',
-            borderRadius: '4px',
-            '& .react-flow__minimap-mask': {
-                fill: '#252526',
-            },
-            '& .react-flow__minimap-node': {
-                fill: '#3e3e42',
-                stroke: 'none',
-            },
-        },
-        '& .react-flow__background': {
-            backgroundColor: '#1a1a1a',
-        },
-        '& .react-flow__attribution': {
-            display: 'none',
-        },
-    };
+    const reactFlowWrapper = useRef<HTMLDivElement>(null);
+    const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
 
     // ---------------------------------------------------------------------------
-    // EVENT HANDLERS
+    // DROP HANDLER
     // ---------------------------------------------------------------------------
 
-    const handleConnect = useCallback(
-        (connection: Connection) => {
-            console.log('🔗 Connection created:', connection);
-            onConnect(connection);
+    const onDrop = useCallback(
+        (event: React.DragEvent) => {
+            event.preventDefault();
+
+            const nodeType = event.dataTransfer.getData('application/reactflow');
+
+            if (!nodeType || !reactFlowWrapper.current || !reactFlowInstance) {
+                return;
+            }
+
+            const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+            const position = reactFlowInstance.project({
+                x: event.clientX - reactFlowBounds.left,
+                y: event.clientY - reactFlowBounds.top,
+            });
+
+            onAddNode(nodeType, position);
         },
-        [onConnect]
+        [reactFlowInstance, onAddNode]
     );
 
-    const handleNodeClick = useCallback(
-        (event: React.MouseEvent, node: Node) => {
-            console.log('🖱️ Node clicked:', node.id, node.type);
-        },
-        []
-    );
-
-    const handleEdgeClick = useCallback(
-        (event: React.MouseEvent, edge: Edge) => {
-            console.log('🖱️ Edge clicked:', edge.id);
-        },
-        []
-    );
-
-    const handlePaneClick = useCallback((event: React.MouseEvent) => {
-        console.log('🖱️ Canvas clicked');
+    const onDragOver = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
     }, []);
 
     // ---------------------------------------------------------------------------
@@ -164,81 +94,91 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     // ---------------------------------------------------------------------------
 
     return (
-        <Box sx={canvasStyles}>
-            <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={handleConnect}
-                onNodeClick={handleNodeClick}
-                onEdgeClick={handleEdgeClick}
-                onPaneClick={handlePaneClick}
-                nodeTypes={nodeTypes}
-                connectionMode={ConnectionMode.Loose}
-                fitView
-                fitViewOptions={{
-                    padding: 0.2,
-                    includeHiddenNodes: false,
-                }}
-                defaultEdgeOptions={{
-                    type: 'smoothstep',
-                    animated: false,
-                    style: { stroke: '#3e3e42', strokeWidth: 2 },
-                }}
-                snapToGrid={true}
-                snapGrid={[15, 15]}
-                attributionPosition="bottom-right"
-                minZoom={0.1}
-                maxZoom={2}
-                deleteKeyCode="Delete"
-                multiSelectionKeyCode="Shift"
-                selectionKeyCode="Shift"
-                panOnScroll={false}
-                zoomOnScroll={true}
-                zoomOnPinch={true}
-                panOnDrag={true}
-                selectNodesOnDrag={false}
-            >
-                <Background
-                    variant={BackgroundVariant.Dots}
-                    gap={20}
-                    size={1}
-                    color="#2d2d30"
-                />
-
-                <Controls
-                    showZoom={true}
-                    showFitView={true}
-                    showInteractive={true}
-                    position="bottom-left"
-                />
-
-                <MiniMap
-                    nodeColor={(node) => {
-                        switch (node.type) {
-                            case 'input':
-                                return '#1976d2';
-                            case 'query':
-                                return '#00897b';
-                            case 'output':
-                                return '#f57c00';
-                            case 'configuration':
-                                return '#4a148c';
-                            default:
-                                return '#3e3e42';
-                        }
+        <Box
+            ref={reactFlowWrapper}
+            sx={{
+                width: '100%',
+                height: '100%',
+                backgroundColor: '#1e1e1e',
+                // ⭐ REMOVE WHITE BACKGROUNDS
+                '& .react-flow__node': {
+                    backgroundColor: 'transparent !important',
+                },
+                '& .react-flow__node-default': {
+                    backgroundColor: 'transparent !important',
+                    border: 'none !important',
+                    padding: '0 !important',
+                },
+                // ⭐ STYLE CONTROLS (moved to sx instead of style prop)
+                '& .react-flow__controls': {
+                    '& button': {
+                        backgroundColor: '#2d2d30',
+                        color: '#cccccc',
+                        borderColor: '#3e3e42',
+                        '&:hover': {
+                            backgroundColor: '#3e3e42',
+                        },
+                    },
+                },
+            }}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+        >
+            <ReactFlowProvider>
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    onInit={setReactFlowInstance}
+                    nodeTypes={nodeTypes}
+                    fitView
+                    snapToGrid
+                    snapGrid={[10, 10]}
+                    defaultEdgeOptions={{
+                        type: 'smoothstep',
+                        animated: false,
+                        style: { stroke: '#3b82f6', strokeWidth: 2 },
                     }}
-                    nodeStrokeWidth={3}
-                    zoomable
-                    pannable
-                    position="bottom-right"
-                    style={{
-                        width: 150,
-                        height: 100,
-                    }}
-                />
-            </ReactFlow>
+                >
+                    {/* UE5-STYLE GRID (Two layers) */}
+                    <Background
+                        variant={BackgroundVariant.Lines}
+                        gap={10}
+                        size={0.5}
+                        color="#252525"
+                    />
+                    <Background
+                        variant={BackgroundVariant.Lines}
+                        gap={100}
+                        size={1}
+                        color="#2a2a2a"
+                    />
+
+                    {/* Controls - ⭐ REMOVED INVALID STYLE PROP */}
+                    <Controls />
+
+                    {/* MiniMap */}
+                    <MiniMap
+                        nodeColor={(node) => {
+                            const category = node.data?.category;
+                            const colors: Record<string, string> = {
+                                configuration: '#4a148c',
+                                input: '#1976d2',
+                                query: '#00897b',
+                                output: '#f57c00',
+                            };
+                            return colors[category] || '#64748b';
+                        }}
+                        maskColor="#1e1e1e80"
+                        style={{
+                            backgroundColor: '#2d2d30',
+                            border: '1px solid #3e3e42',
+                        }}
+                    />
+                </ReactFlow>
+            </ReactFlowProvider>
         </Box>
     );
 };

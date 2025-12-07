@@ -24,6 +24,7 @@ import {
     Settings as SettingsIcon,
     Visibility as ShowOutputIcon,
     VisibilityOff as HideOutputIcon,
+    AutoFixHigh as TestIcon, // NEW: Test/Example nodes icon
 } from '@mui/icons-material';
 
 // =============================================================================
@@ -67,6 +68,11 @@ interface NavigationBarProps {
     outputPanelVisible: boolean;
 
     /**
+     * Handler for creating example nodes (testing/development)
+     */
+    onTest?: () => void;
+
+    /**
      * Optional: Current workflow name to display
      */
     workflowName?: string;
@@ -94,6 +100,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     onSettings,
     onToggleOutput,
     outputPanelVisible,
+    onTest, // NEW: Test button handler
     workflowName = 'Untitled Workflow',
     canRun = true,
     hasUnsavedChanges = false,
@@ -194,6 +201,26 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
                         </Button>
                     </Tooltip>
 
+                    {/* ============================================================= */}
+                    {/* TEST BUTTON - Create Example Nodes (Development/Testing) */}
+                    {/* ============================================================= */}
+                    {onTest && (
+                        <Tooltip title="Create UE5-style example nodes (Test)" arrow>
+                            <IconButton
+                                size="small"
+                                onClick={onTest}
+                                sx={{
+                                    color: 'secondary.main',
+                                    '&:hover': {
+                                        backgroundColor: 'action.hover',
+                                    },
+                                }}
+                            >
+                                <TestIcon />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+
                     {/* Load Workflow Button */}
                     <Tooltip title="Load workflow (Ctrl+O)" arrow>
                         <Button
@@ -242,7 +269,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
                         title={
                             canRun
                                 ? 'Execute workflow (F5)'
-                                : 'Add nodes to canvas before running'  // ← Updated!
+                                : 'Add nodes to canvas before running'
                         }
                         arrow
                     >

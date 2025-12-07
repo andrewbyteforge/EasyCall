@@ -9,12 +9,7 @@ import theme from './theme';
 import MainLayout from './components/layout/MainLayout';
 
 const App: React.FC = () => {
-    return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <MainLayout />
-        </ThemeProvider>
-    );
+    return <MainLayout />;  // ✅ Clean - providers already in index.tsx
 };
 
 export default App;

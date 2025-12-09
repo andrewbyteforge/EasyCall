@@ -1,881 +1,1009 @@
 // =============================================================================
 // FILE: frontend/src/types/node_types.ts
 // =============================================================================
-// TypeScript definitions for all 21 node types in the workflow builder.
-// Includes node metadata, configuration schema, and pin definitions.
+// Type definitions for all 21 node types in the workflow builder.
+// Includes visual configuration, inputs, outputs, and documentation.
 // =============================================================================
 
-import { NodeCategory } from './workflow_types';
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+/**
+ * Categories of nodes in the workflow builder.
+ */
+export enum NodeCategory {
+    CONFIGURATION = 'configuration',
+    INPUT = 'input',
+    QUERY = 'query',
+    OUTPUT = 'output',
+}
+
+/**
+ * API providers for query nodes.
+ */
+export enum APIProvider {
+    CHAINALYSIS = 'chainalysis',
+    TRM = 'trm',
+    NONE = 'none',
+}
+
+/**
+ * Data types that can flow through node connections.
+ */
+export enum DataType {
+    ADDRESS = 'address',
+    ADDRESS_LIST = 'address_list',
+    TRANSACTION = 'transaction',
+    CREDENTIALS = 'credentials',
+    JSON_DATA = 'json_data',
+    STRING = 'string',
+    NUMBER = 'number',
+    BOOLEAN = 'boolean',
+    ANY = 'any',
+}
+
+// =============================================================================
+// INTERFACES
+// =============================================================================
+
+/**
+ * Input pin definition for a node.
+ */
+export interface NodeInput {
+    id: string;
+    label: string;
+    type: DataType;
+    required: boolean;
+    description: string;
+}
+
+/**
+ * Output pin definition for a node.
+ */
+export interface NodeOutput {
+    id: string;
+    label: string;
+    type: DataType;
+    description: string;
+}
+
+/**
+ * Configuration field for a node.
+ */
+export interface NodeConfigField {
+    id: string;
+    label: string;
+    type: 'string' | 'number' | 'boolean' | 'select' | 'password' | 'file';
+    required: boolean;
+    default?: any;
+    placeholder?: string;
+    options?: { value: string; label: string }[];
+    description: string;
+}
+
+/**
+ * Visual styling for a node.
+ */
+export interface NodeVisual {
+    icon: string;
+    color: string;
+    width: number;
+    height: number;
+}
+
+/**
+ * Documentation for a node type.
+ */
+export interface NodeDocumentation {
+    name: string;
+    description: string;
+    longDescription: string;
+    usage: string;
+    examples: string[];
+}
+
+/**
+ * Complete node type definition.
+ * 
+ * Note: Includes convenience properties (name, icon, description, etc.) 
+ * for direct access alongside nested objects for organization.
+ */
+export interface NodeTypeDefinition {
+    type: string;
+    category: NodeCategory;
+    provider: APIProvider;
+
+    // =========================================================================
+    // CONVENIENCE PROPERTIES (direct access for common properties)
+    // =========================================================================
+    name: string;               // Duplicates documentation.name
+    icon: string;               // Duplicates visual.icon
+    color: string;              // Duplicates visual.color
+    description: string;        // Duplicates documentation.description
+    longDescription?: string;   // Duplicates documentation.longDescription
+
+    // =========================================================================
+    // NESTED OBJECTS (organized structure)
+    // =========================================================================
+    visual: NodeVisual;
+    documentation: NodeDocumentation;
+    inputs: NodeInput[];
+    outputs: NodeOutput[];
+    configuration: NodeConfigField[];
+}
+
+// =============================================================================
+// CATEGORY COLORS
+// =============================================================================
+
+/**
+ * Color scheme for each node category (Unreal Engine Blueprint style).
+ */
+export const CATEGORY_COLORS: Record<NodeCategory, string> = {
+    [NodeCategory.CONFIGURATION]: '#4a148c', // Deep purple
+    [NodeCategory.INPUT]: '#1976d2',         // Blue
+    [NodeCategory.QUERY]: '#00897b',         // Teal
+    [NodeCategory.OUTPUT]: '#f57c00',        // Orange
+};
 
 // =============================================================================
 // NODE TYPE DEFINITIONS
 // =============================================================================
 
 /**
- * Node type identifier enum.
+ * All 21 node type definitions.
  */
-export enum NodeType {
-    // Configuration Nodes
-    CREDENTIALS_CHAINALYSIS = 'credential_chainalysis',
-    CREDENTIALS_TRM = 'credential_trm',
-
-    // Input Nodes
-    SINGLE_ADDRESS = 'single_address',
-    BATCH_INPUT = 'batch_input',
-    TRANSACTION_HASH = 'transaction_hash',
-
-    // Chainalysis Query Nodes
-    CHAINALYSIS_CLUSTER_INFO = 'chainalysis_cluster_info',
-    CHAINALYSIS_CLUSTER_BALANCE = 'chainalysis_cluster_balance',
-    CHAINALYSIS_CLUSTER_COUNTERPARTIES = 'chainalysis_cluster_counterparties',
-    CHAINALYSIS_TRANSACTION_DETAILS = 'chainalysis_transaction_details',
-    CHAINALYSIS_EXPOSURE_CATEGORY = 'chainalysis_exposure_category',
-    CHAINALYSIS_EXPOSURE_SERVICE = 'chainalysis_exposure_service',
-
-    // TRM Query Nodes
-    TRM_ADDRESS_ATTRIBUTION = 'trm_address_attribution',
-    TRM_TOTAL_EXPOSURE = 'trm_total_exposure',
-    TRM_ADDRESS_SUMMARY = 'trm_address_summary',
-    TRM_ADDRESS_TRANSFERS = 'trm_address_transfers',
-    TRM_NETWORK_INTELLIGENCE = 'trm_network_intelligence',
-
-    // Output Nodes
-    TXT_EXPORT = 'txt_export',
-    EXCEL_EXPORT = 'excel_export',
-    JSON_EXPORT = 'json_export',
-    CSV_EXPORT = 'csv_export',
-    CONSOLE_LOG = 'console_log',
-}
-
-/**
- * Pin (connection point) definition.
- */
-export interface PinDefinition {
-    id: string;
-    label: string;
-    type: 'input' | 'output';
-    dataType: string;
-    required?: boolean;
-    description?: string;
-}
-
-/**
- * Node configuration field definition.
- */
-export interface ConfigFieldDefinition {
-    name: string;
-    label: string;
-    type: 'string' | 'number' | 'boolean' | 'select' | 'file' | 'password';
-    description: string;
-    required?: boolean;
-    default?: any;
-    options?: Array<{ value: string; label: string }>;
-    placeholder?: string;
-    min?: number;
-    max?: number;
-    accept?: string; // For file inputs
-}
-
-/**
- * Complete node type definition with metadata.
- */
-export interface NodeTypeDefinition {
-    type: NodeType;
-    category: NodeCategory;
-    name: string;
-    description: string;
-    longDescription: string;
-    icon: string;
-    color: string;
-    inputs: PinDefinition[];
-    outputs: PinDefinition[];
-    configuration: ConfigFieldDefinition[];
-    provider?: 'chainalysis' | 'trm';
-}
-
-// =============================================================================
-// NODE REGISTRY - All 21 Node Types
-// =============================================================================
-
-export const NODE_REGISTRY: Record<NodeType, NodeTypeDefinition> = {
-    // ===========================================================================
-    // CONFIGURATION NODES
-    // ===========================================================================
-
-    [NodeType.CREDENTIALS_CHAINALYSIS]: {
-        type: NodeType.CREDENTIALS_CHAINALYSIS,
+export const NODE_TYPES: NodeTypeDefinition[] = [
+    // =========================================================================
+    // CONFIGURATION NODES (2)
+    // =========================================================================
+    {
+        type: 'credential_chainalysis',
         category: NodeCategory.CONFIGURATION,
+        provider: APIProvider.CHAINALYSIS,
+
+        // Convenience properties
         name: 'Chainalysis Credentials',
-        description: 'Override global Chainalysis API credentials',
-        longDescription: 'Provide workflow-specific Chainalysis Reactor API credentials. If not connected, query nodes use global settings.',
         icon: '🔑',
         color: '#4a148c',
+        description: 'Configure Chainalysis API credentials for this workflow',
+        longDescription: 'Override global Chainalysis Reactor API credentials for this workflow. Useful for testing with sandbox credentials or using multiple API keys.',
+
+        // Nested objects
+        visual: {
+            icon: '🔑',
+            color: '#4a148c',
+            width: 280,
+            height: 150,
+        },
+        documentation: {
+            name: 'Chainalysis Credentials',
+            description: 'Configure Chainalysis API credentials for this workflow',
+            longDescription: 'Override global Chainalysis Reactor API credentials for this workflow. Useful for testing with sandbox credentials or using multiple API keys.',
+            usage: '1. Drag node onto canvas\n2. Double-click to edit\n3. Enter API token\n4. Connect to query nodes',
+            examples: ['Use sandbox credentials for testing', 'Different API keys for different investigations'],
+        },
         inputs: [],
         outputs: [
-            {
-                id: 'credentials',
-                label: 'credentials',
-                type: 'output',
-                dataType: 'credentials',
-                description: 'Chainalysis API credentials object',
-            },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, description: 'Chainalysis API credentials object' },
         ],
         configuration: [
-            {
-                name: 'label',
-                label: 'Label',
-                type: 'string',
-                description: 'Friendly name for this credential set',
-                default: 'Production',
-                placeholder: 'e.g., Sandbox, Testing, Production',
-            },
-            {
-                name: 'api_key',
-                label: 'API Key',
-                type: 'password',
-                description: 'Chainalysis Reactor API token',
-                required: true,
-            },
-            {
-                name: 'api_url',
-                label: 'API URL',
-                type: 'string',
-                description: 'Base URL for Chainalysis API',
-                default: 'https://iapi.chainalysis.com',
-                placeholder: 'https://iapi.chainalysis.com',
-            },
+            { id: 'label', label: 'Label', type: 'string', required: false, default: 'Production', placeholder: 'e.g., Sandbox, Production', description: 'Friendly name for this credential set' },
+            { id: 'api_key', label: 'API Key', type: 'password', required: true, description: 'Chainalysis Reactor API token' },
+            { id: 'api_url', label: 'API URL', type: 'string', required: false, default: 'https://iapi.chainalysis.com', description: 'Base URL for Chainalysis API' },
         ],
-        provider: 'chainalysis',
     },
-
-    [NodeType.CREDENTIALS_TRM]: {
-        type: NodeType.CREDENTIALS_TRM,
+    {
+        type: 'credential_trm',
         category: NodeCategory.CONFIGURATION,
+        provider: APIProvider.TRM,
+
+        // Convenience properties
         name: 'TRM Labs Credentials',
-        description: 'Override global TRM Labs API credentials',
-        longDescription: 'Provide workflow-specific TRM Labs API credentials. If not connected, query nodes use global settings.',
         icon: '🔑',
         color: '#4a148c',
+        description: 'Configure TRM Labs API credentials for this workflow',
+        longDescription: 'Override global TRM Labs API credentials for this workflow.',
+
+        // Nested objects
+        visual: {
+            icon: '🔑',
+            color: '#4a148c',
+            width: 280,
+            height: 150,
+        },
+        documentation: {
+            name: 'TRM Labs Credentials',
+            description: 'Configure TRM Labs API credentials for this workflow',
+            longDescription: 'Override global TRM Labs API credentials for this workflow.',
+            usage: '1. Drag node onto canvas\n2. Double-click to edit\n3. Enter API key\n4. Connect to query nodes',
+            examples: ['Use sandbox credentials', 'Multiple accounts'],
+        },
         inputs: [],
         outputs: [
-            {
-                id: 'credentials',
-                label: 'credentials',
-                type: 'output',
-                dataType: 'credentials',
-                description: 'TRM Labs API credentials object',
-            },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, description: 'TRM Labs API credentials object' },
         ],
         configuration: [
-            {
-                name: 'label',
-                label: 'Label',
-                type: 'string',
-                description: 'Friendly name for this credential set',
-                default: 'Production',
-                placeholder: 'e.g., Sandbox, Testing, Production',
-            },
-            {
-                name: 'api_key',
-                label: 'API Key',
-                type: 'password',
-                description: 'TRM Labs API key',
-                required: true,
-            },
-            {
-                name: 'api_url',
-                label: 'API URL',
-                type: 'string',
-                description: 'Base URL for TRM Labs API',
-                default: 'https://api.trmlabs.com',
-                placeholder: 'https://api.trmlabs.com',
-            },
+            { id: 'label', label: 'Label', type: 'string', required: false, default: 'Production', description: 'Friendly name' },
+            { id: 'api_key', label: 'API Key', type: 'password', required: true, description: 'TRM Labs API key' },
+            { id: 'api_url', label: 'API URL', type: 'string', required: false, default: 'https://api.trmlabs.com', description: 'Base URL' },
         ],
-        provider: 'trm',
     },
 
-    // ===========================================================================
-    // INPUT NODES
-    // ===========================================================================
-
-    [NodeType.SINGLE_ADDRESS]: {
-        type: NodeType.SINGLE_ADDRESS,
+    // =========================================================================
+    // INPUT NODES (3)
+    // =========================================================================
+    {
+        type: 'single_address',
         category: NodeCategory.INPUT,
+        provider: APIProvider.NONE,
+
+        // Convenience properties
         name: 'Single Address Input',
-        description: 'Manually enter a single cryptocurrency address',
-        longDescription: 'Input a single blockchain address for investigation. Validates format based on selected blockchain.',
         icon: '📍',
         color: '#1976d2',
+        description: 'Manually enter a single cryptocurrency address',
+        longDescription: 'Input a single blockchain address for investigation. Validates address format based on selected blockchain.',
+
+        // Nested objects
+        visual: { icon: '📍', color: '#1976d2', width: 280, height: 180 },
+        documentation: {
+            name: 'Single Address Input',
+            description: 'Manually enter a single cryptocurrency address',
+            longDescription: 'Input a single blockchain address for investigation. Validates address format based on selected blockchain.',
+            usage: '1. Drag onto canvas\n2. Enter address\n3. Select blockchain\n4. Connect to query nodes',
+            examples: ['Bitcoin: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', 'Ethereum: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb'],
+        },
         inputs: [],
         outputs: [
-            {
-                id: 'address',
-                label: 'address',
-                type: 'output',
-                dataType: 'string',
-                description: 'Validated blockchain address',
-            },
-            {
-                id: 'blockchain',
-                label: 'blockchain',
-                type: 'output',
-                dataType: 'string',
-                description: 'Blockchain identifier',
-            },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Validated blockchain address' },
+            { id: 'blockchain', label: 'blockchain', type: DataType.STRING, description: 'Blockchain identifier' },
         ],
         configuration: [
+            { id: 'address', label: 'Address', type: 'string', required: true, placeholder: 'Enter blockchain address', description: 'Cryptocurrency address to analyze' },
             {
-                name: 'address',
-                label: 'Address',
-                type: 'string',
-                description: 'Cryptocurrency address to analyze',
-                required: true,
-                placeholder: 'Enter blockchain address',
-            },
-            {
-                name: 'blockchain',
-                label: 'Blockchain',
-                type: 'select',
-                description: 'Blockchain network',
-                required: true,
-                default: 'bitcoin',
-                options: [
+                id: 'blockchain', label: 'Blockchain', type: 'select', required: true, default: 'bitcoin', options: [
                     { value: 'bitcoin', label: 'Bitcoin' },
                     { value: 'ethereum', label: 'Ethereum' },
                     { value: 'litecoin', label: 'Litecoin' },
-                    { value: 'bitcoin_cash', label: 'Bitcoin Cash' },
-                ],
+                ], description: 'Blockchain network'
             },
         ],
     },
-
-    [NodeType.BATCH_INPUT]: {
-        type: NodeType.BATCH_INPUT,
+    {
+        type: 'batch_input',
         category: NodeCategory.INPUT,
+        provider: APIProvider.NONE,
+
+        // Convenience properties
         name: 'Batch Address Input',
-        description: 'Upload file with multiple addresses',
-        longDescription: 'Import multiple blockchain addresses from CSV, Excel, PDF, or Word documents. Supports up to 10,000 addresses.',
         icon: '📁',
         color: '#1976d2',
+        description: 'Upload file with multiple addresses for batch processing',
+        longDescription: 'Import multiple blockchain addresses from CSV, Excel, PDF, or Word documents. Supports up to 10,000 addresses per workflow.',
+
+        // Nested objects
+        visual: { icon: '📁', color: '#1976d2', width: 300, height: 220 },
+        documentation: {
+            name: 'Batch Address Input',
+            description: 'Upload file with multiple addresses for batch processing',
+            longDescription: 'Import multiple blockchain addresses from CSV, Excel, PDF, or Word documents. Supports up to 10,000 addresses per workflow.',
+            usage: '1. Drag onto canvas\n2. Upload file\n3. Select format\n4. Specify column\n5. Connect to query nodes',
+            examples: ['CSV with 1,000 Bitcoin addresses', 'Excel spreadsheet with Ethereum addresses'],
+        },
         inputs: [],
         outputs: [
-            {
-                id: 'addresses',
-                label: 'addresses',
-                type: 'output',
-                dataType: 'array',
-                description: 'Array of validated addresses',
-            },
-            {
-                id: 'count',
-                label: 'count',
-                type: 'output',
-                dataType: 'number',
-                description: 'Number of addresses loaded',
-            },
-            {
-                id: 'blockchain',
-                label: 'blockchain',
-                type: 'output',
-                dataType: 'string',
-                description: 'Blockchain identifier',
-            },
+            { id: 'addresses', label: 'addresses', type: DataType.ADDRESS_LIST, description: 'Array of validated addresses' },
+            { id: 'count', label: 'count', type: DataType.NUMBER, description: 'Number of addresses' },
+            { id: 'blockchain', label: 'blockchain', type: DataType.STRING, description: 'Blockchain identifier' },
         ],
         configuration: [
+            { id: 'file', label: 'File', type: 'file', required: true, description: 'Upload file containing addresses' },
             {
-                name: 'file_upload',
-                label: 'File',
-                type: 'file',
-                description: 'Upload file containing addresses',
-                required: true,
-                accept: '.csv,.xlsx,.pdf,.docx',
-            },
-            {
-                name: 'file_format',
-                label: 'File Format',
-                type: 'select',
-                description: 'Format of uploaded file',
-                required: true,
-                options: [
+                id: 'format', label: 'Format', type: 'select', required: true, options: [
                     { value: 'csv', label: 'CSV' },
                     { value: 'excel', label: 'Excel' },
                     { value: 'pdf', label: 'PDF' },
-                    { value: 'word', label: 'Word Document' },
-                ],
+                    { value: 'word', label: 'Word' },
+                ], description: 'File format'
             },
             {
-                name: 'blockchain',
-                label: 'Blockchain',
-                type: 'select',
-                description: 'Blockchain network for all addresses',
-                required: true,
-                default: 'bitcoin',
-                options: [
+                id: 'blockchain', label: 'Blockchain', type: 'select', required: true, default: 'bitcoin', options: [
                     { value: 'bitcoin', label: 'Bitcoin' },
                     { value: 'ethereum', label: 'Ethereum' },
-                ],
+                ], description: 'Blockchain network'
             },
         ],
     },
-
-    [NodeType.TRANSACTION_HASH]: {
-        type: NodeType.TRANSACTION_HASH,
+    {
+        type: 'transaction_hash',
         category: NodeCategory.INPUT,
+        provider: APIProvider.NONE,
+
+        // Convenience properties
         name: 'Transaction Hash Input',
-        description: 'Enter a blockchain transaction hash',
-        longDescription: 'Input a transaction hash for detailed transaction analysis.',
-        icon: '🔗',
+        icon: '🔖',
         color: '#1976d2',
+        description: 'Input a transaction hash for analysis',
+        longDescription: 'Enter a blockchain transaction hash to analyze transaction details.',
+
+        // Nested objects
+        visual: { icon: '🔖', color: '#1976d2', width: 280, height: 180 },
+        documentation: {
+            name: 'Transaction Hash Input',
+            description: 'Input a transaction hash for analysis',
+            longDescription: 'Enter a blockchain transaction hash to analyze transaction details.',
+            usage: '1. Enter transaction hash\n2. Select blockchain\n3. Connect to query nodes',
+            examples: ['Bitcoin transaction hash'],
+        },
         inputs: [],
         outputs: [
-            {
-                id: 'tx_hash',
-                label: 'tx_hash',
-                type: 'output',
-                dataType: 'string',
-                description: 'Transaction hash',
-            },
-            {
-                id: 'blockchain',
-                label: 'blockchain',
-                type: 'output',
-                dataType: 'string',
-                description: 'Blockchain identifier',
-            },
+            { id: 'tx_hash', label: 'tx_hash', type: DataType.TRANSACTION, description: 'Transaction hash' },
+            { id: 'blockchain', label: 'blockchain', type: DataType.STRING, description: 'Blockchain identifier' },
         ],
         configuration: [
+            { id: 'tx_hash', label: 'Transaction Hash', type: 'string', required: true, placeholder: 'Enter transaction hash', description: 'Transaction hash to analyze' },
             {
-                name: 'tx_hash',
-                label: 'Transaction Hash',
-                type: 'string',
-                description: 'Transaction hash to analyze',
-                required: true,
-                placeholder: 'Enter transaction hash',
-            },
-            {
-                name: 'blockchain',
-                label: 'Blockchain',
-                type: 'select',
-                description: 'Blockchain network',
-                required: true,
-                default: 'bitcoin',
-                options: [
+                id: 'blockchain', label: 'Blockchain', type: 'select', required: true, default: 'bitcoin', options: [
                     { value: 'bitcoin', label: 'Bitcoin' },
                     { value: 'ethereum', label: 'Ethereum' },
-                ],
+                ], description: 'Blockchain network'
             },
         ],
     },
 
-    // ===========================================================================
-    // CHAINALYSIS QUERY NODES (Placeholder implementations)
-    // ===========================================================================
-
-    [NodeType.CHAINALYSIS_CLUSTER_INFO]: {
-        type: NodeType.CHAINALYSIS_CLUSTER_INFO,
+    // =========================================================================
+    // QUERY NODES - CHAINALYSIS (6)
+    // =========================================================================
+    {
+        type: 'chainalysis_cluster_info',
         category: NodeCategory.QUERY,
-        name: 'Cluster Info',
-        description: 'Get cluster name and category (Chainalysis)',
-        longDescription: 'Identifies which entity cluster an address belongs to. Returns cluster name, category, and root address.',
+        provider: APIProvider.CHAINALYSIS,
+
+        // Convenience properties
+        name: 'Cluster Info (Chainalysis)',
         icon: '🏢',
         color: '#00897b',
+        description: 'Get cluster name, category, and root address',
+        longDescription: 'Queries Chainalysis to identify which entity cluster an address belongs to.',
+
+        // Nested objects
+        visual: { icon: '🏢', color: '#00897b', width: 300, height: 200 },
+        documentation: {
+            name: 'Cluster Info (Chainalysis)',
+            description: 'Get cluster name, category, and root address',
+            longDescription: 'Queries Chainalysis to identify which entity cluster an address belongs to.',
+            usage: 'Connect address → Execute → View cluster info',
+            examples: ['Identify if address belongs to an exchange'],
+        },
         inputs: [
-            {
-                id: 'credentials',
-                label: 'credentials',
-                type: 'input',
-                dataType: 'credentials',
-                description: 'Optional credentials override',
-            },
-            {
-                id: 'address',
-                label: 'address',
-                type: 'input',
-                dataType: 'string',
-                required: true,
-                description: 'Blockchain address to query',
-            },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, required: false, description: 'Optional credentials override' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, required: true, description: 'Address to query' },
         ],
         outputs: [
-            {
-                id: 'cluster_name',
-                label: 'cluster_name',
-                type: 'output',
-                dataType: 'string',
-                description: 'Name of the entity',
-            },
-            {
-                id: 'category',
-                label: 'category',
-                type: 'output',
-                dataType: 'string',
-                description: 'Entity category',
-            },
-            {
-                id: 'address',
-                label: 'address',
-                type: 'output',
-                dataType: 'string',
-                description: 'Original address (pass-through)',
-            },
+            { id: 'cluster_name', label: 'cluster_name', type: DataType.STRING, description: 'Cluster entity name' },
+            { id: 'category', label: 'category', type: DataType.STRING, description: 'Cluster category' },
+            { id: 'cluster_address', label: 'cluster_address', type: DataType.ADDRESS, description: 'Root address' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Original address' },
         ],
         configuration: [
             {
-                name: 'asset',
-                label: 'Asset',
-                type: 'select',
-                description: 'Cryptocurrency asset',
-                required: true,
-                default: 'bitcoin',
-                options: [
+                id: 'asset', label: 'Asset', type: 'select', required: true, default: 'bitcoin', options: [
                     { value: 'bitcoin', label: 'Bitcoin' },
                     { value: 'ethereum', label: 'Ethereum' },
-                ],
+                ], description: 'Cryptocurrency asset'
             },
         ],
-        provider: 'chainalysis',
     },
-
-    [NodeType.CHAINALYSIS_CLUSTER_BALANCE]: {
-        type: NodeType.CHAINALYSIS_CLUSTER_BALANCE,
+    {
+        type: 'chainalysis_cluster_balance',
         category: NodeCategory.QUERY,
-        name: 'Cluster Balance',
-        description: 'Get balance and transfer statistics (Chainalysis)',
-        longDescription: 'Returns comprehensive balance and transfer statistics for a cluster.',
+        provider: APIProvider.CHAINALYSIS,
+
+        // Convenience properties
+        name: 'Cluster Balance (Chainalysis)',
         icon: '💰',
         color: '#00897b',
+        description: 'Get cluster balance and transfer statistics',
+        longDescription: 'Returns comprehensive balance and transfer statistics for a cluster.',
+
+        // Nested objects
+        visual: { icon: '💰', color: '#00897b', width: 320, height: 240 },
+        documentation: {
+            name: 'Cluster Balance (Chainalysis)',
+            description: 'Get cluster balance and transfer statistics',
+            longDescription: 'Returns comprehensive balance and transfer statistics for a cluster.',
+            usage: 'Connect address → Execute → View balance data',
+            examples: ['Get exchange wallet balance'],
+        },
         inputs: [
-            {
-                id: 'credentials',
-                label: 'credentials',
-                type: 'input',
-                dataType: 'credentials',
-            },
-            {
-                id: 'address',
-                label: 'address',
-                type: 'input',
-                dataType: 'string',
-                required: true,
-            },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, required: false, description: 'Optional credentials' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, required: true, description: 'Address to query' },
         ],
         outputs: [
-            {
-                id: 'balance',
-                label: 'balance',
-                type: 'output',
-                dataType: 'number',
-            },
-            {
-                id: 'total_sent',
-                label: 'total_sent',
-                type: 'output',
-                dataType: 'number',
-            },
-            {
-                id: 'address',
-                label: 'address',
-                type: 'output',
-                dataType: 'string',
-            },
+            { id: 'balance', label: 'balance', type: DataType.NUMBER, description: 'Current balance' },
+            { id: 'total_sent', label: 'total_sent', type: DataType.NUMBER, description: 'Total sent' },
+            { id: 'total_received', label: 'total_received', type: DataType.NUMBER, description: 'Total received' },
+            { id: 'transfer_count', label: 'transfer_count', type: DataType.NUMBER, description: 'Transfer count' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Original address' },
         ],
         configuration: [
             {
-                name: 'asset',
-                label: 'Asset',
-                type: 'select',
-                required: true,
-                default: 'bitcoin',
-                options: [
+                id: 'asset', label: 'Asset', type: 'select', required: true, default: 'bitcoin', options: [
                     { value: 'bitcoin', label: 'Bitcoin' },
                     { value: 'ethereum', label: 'Ethereum' },
-                ],
-                description: 'Cryptocurrency type',
+                ], description: 'Cryptocurrency asset'
+            },
+            {
+                id: 'output_asset', label: 'Output Asset', type: 'select', required: false, default: 'NATIVE', options: [
+                    { value: 'NATIVE', label: 'Native Currency' },
+                    { value: 'USD', label: 'USD' },
+                ], description: 'Output currency'
             },
         ],
-        provider: 'chainalysis',
     },
-
-    // Placeholder stubs for remaining Chainalysis nodes
-    [NodeType.CHAINALYSIS_CLUSTER_COUNTERPARTIES]: {
-        type: NodeType.CHAINALYSIS_CLUSTER_COUNTERPARTIES,
+    {
+        type: 'chainalysis_cluster_counterparties',
         category: NodeCategory.QUERY,
-        name: 'Cluster Counterparties',
-        description: 'Get transaction counterparties (Chainalysis)',
-        longDescription: 'Returns entities that transacted with this cluster.',
-        icon: '🤝',
+        provider: APIProvider.CHAINALYSIS,
+
+        // Convenience properties
+        name: 'Cluster Counterparties (Chainalysis)',
+        icon: '🔄',
         color: '#00897b',
+        description: 'Get addresses that transacted with this cluster',
+        longDescription: 'Returns list of counterparties that have transacted with the cluster.',
+
+        // Nested objects
+        visual: { icon: '🔄', color: '#00897b', width: 340, height: 220 },
+        documentation: {
+            name: 'Cluster Counterparties (Chainalysis)',
+            description: 'Get addresses that transacted with this cluster',
+            longDescription: 'Returns list of counterparties that have transacted with the cluster.',
+            usage: 'Connect address → Execute → View counterparties',
+            examples: ['Find who transacted with an exchange'],
+        },
         inputs: [
-            { id: 'credentials', label: 'credentials', type: 'input', dataType: 'credentials' },
-            { id: 'address', label: 'address', type: 'input', dataType: 'string', required: true },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, required: false, description: 'Optional credentials' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, required: true, description: 'Address to query' },
         ],
         outputs: [
-            { id: 'counterparties', label: 'counterparties', type: 'output', dataType: 'array' },
+            { id: 'counterparties', label: 'counterparties', type: DataType.JSON_DATA, description: 'List of counterparties' },
+            { id: 'count', label: 'count', type: DataType.NUMBER, description: 'Number of counterparties' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Original address' },
         ],
         configuration: [
             {
-                name: 'asset',
-                label: 'Asset',
-                type: 'select',
-                required: true,
-                default: 'bitcoin',
-                options: [{ value: 'bitcoin', label: 'Bitcoin' }],
-                description: 'Cryptocurrency type',
+                id: 'asset', label: 'Asset', type: 'select', required: true, default: 'bitcoin', options: [
+                    { value: 'bitcoin', label: 'Bitcoin' },
+                    { value: 'ethereum', label: 'Ethereum' },
+                ], description: 'Cryptocurrency asset'
             },
         ],
-        provider: 'chainalysis',
     },
-
-    [NodeType.CHAINALYSIS_TRANSACTION_DETAILS]: {
-        type: NodeType.CHAINALYSIS_TRANSACTION_DETAILS,
+    {
+        type: 'chainalysis_transaction_details',
         category: NodeCategory.QUERY,
-        name: 'Transaction Details',
-        description: 'Get transaction details (Chainalysis)',
-        longDescription: 'Returns detailed information about a specific transaction.',
-        icon: '📋',
+        provider: APIProvider.CHAINALYSIS,
+
+        // Convenience properties
+        name: 'Transaction Details (Chainalysis)',
+        icon: '📝',
         color: '#00897b',
+        description: 'Get detailed information about a transaction',
+        longDescription: 'Returns comprehensive details about a blockchain transaction.',
+
+        // Nested objects
+        visual: { icon: '📝', color: '#00897b', width: 320, height: 200 },
+        documentation: {
+            name: 'Transaction Details (Chainalysis)',
+            description: 'Get detailed information about a transaction',
+            longDescription: 'Returns comprehensive details about a blockchain transaction.',
+            usage: 'Connect transaction hash → Execute → View details',
+            examples: ['Analyze suspicious transaction'],
+        },
         inputs: [
-            { id: 'credentials', label: 'credentials', type: 'input', dataType: 'credentials' },
-            { id: 'tx_hash', label: 'tx_hash', type: 'input', dataType: 'string', required: true },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, required: false, description: 'Optional credentials' },
+            { id: 'tx_hash', label: 'tx_hash', type: DataType.TRANSACTION, required: true, description: 'Transaction hash' },
         ],
         outputs: [
-            { id: 'details', label: 'details', type: 'output', dataType: 'object' },
+            { id: 'tx_details', label: 'tx_details', type: DataType.JSON_DATA, description: 'Transaction details' },
+            { id: 'tx_hash', label: 'tx_hash', type: DataType.TRANSACTION, description: 'Original hash' },
         ],
         configuration: [
             {
-                name: 'asset',
-                label: 'Asset',
-                type: 'select',
-                required: true,
-                default: 'bitcoin',
-                options: [{ value: 'bitcoin', label: 'Bitcoin' }],
-                description: 'Cryptocurrency type',
+                id: 'asset', label: 'Asset', type: 'select', required: true, default: 'bitcoin', options: [
+                    { value: 'bitcoin', label: 'Bitcoin' },
+                    { value: 'ethereum', label: 'Ethereum' },
+                ], description: 'Cryptocurrency asset'
             },
         ],
-        provider: 'chainalysis',
     },
-
-    [NodeType.CHAINALYSIS_EXPOSURE_CATEGORY]: {
-        type: NodeType.CHAINALYSIS_EXPOSURE_CATEGORY,
+    {
+        type: 'chainalysis_exposure_category',
         category: NodeCategory.QUERY,
-        name: 'Exposure by Category',
-        description: 'Get risk exposure by category (Chainalysis)',
-        longDescription: 'Returns risk exposure analysis by category.',
+        provider: APIProvider.CHAINALYSIS,
+
+        // Convenience properties
+        name: 'Exposure by Category (Chainalysis)',
         icon: '⚠️',
         color: '#00897b',
+        description: 'Get exposure to risk categories',
+        longDescription: 'Returns exposure analysis to different risk categories like darknet, ransomware, etc.',
+
+        // Nested objects
+        visual: { icon: '⚠️', color: '#00897b', width: 340, height: 260 },
+        documentation: {
+            name: 'Exposure by Category (Chainalysis)',
+            description: 'Get exposure to risk categories',
+            longDescription: 'Returns exposure analysis to different risk categories like darknet, ransomware, etc.',
+            usage: 'Connect address → Execute → View risk exposure',
+            examples: ['Check for darknet exposure'],
+        },
         inputs: [
-            { id: 'credentials', label: 'credentials', type: 'input', dataType: 'credentials' },
-            { id: 'address', label: 'address', type: 'input', dataType: 'string', required: true },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, required: false, description: 'Optional credentials' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, required: true, description: 'Address to query' },
         ],
         outputs: [
-            { id: 'exposures', label: 'exposures', type: 'output', dataType: 'array' },
-            { id: 'total_risk', label: 'total_risk', type: 'output', dataType: 'number' },
+            { id: 'direct_exposure', label: 'direct_exposure', type: DataType.JSON_DATA, description: 'Direct exposure data' },
+            { id: 'indirect_exposure', label: 'indirect_exposure', type: DataType.JSON_DATA, description: 'Indirect exposure data' },
+            { id: 'total_risk', label: 'total_risk', type: DataType.NUMBER, description: 'Combined exposure value' },
+            { id: 'high_risk_flags', label: 'high_risk_flags', type: DataType.JSON_DATA, description: 'High-risk category flags' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Original address' },
         ],
         configuration: [
             {
-                name: 'asset',
-                label: 'Asset',
-                type: 'select',
-                required: true,
-                default: 'bitcoin',
-                options: [{ value: 'bitcoin', label: 'Bitcoin' }],
-                description: 'Cryptocurrency type',
+                id: 'asset', label: 'Asset', type: 'select', required: true, default: 'bitcoin', options: [
+                    { value: 'bitcoin', label: 'Bitcoin' },
+                    { value: 'ethereum', label: 'Ethereum' },
+                ], description: 'Cryptocurrency asset'
+            },
+            {
+                id: 'direction', label: 'Direction', type: 'select', required: true, default: 'sent', options: [
+                    { value: 'sent', label: 'Sent (Outgoing)' },
+                    { value: 'received', label: 'Received (Incoming)' },
+                ], description: 'Direction to analyze'
             },
         ],
-        provider: 'chainalysis',
     },
-
-    [NodeType.CHAINALYSIS_EXPOSURE_SERVICE]: {
-        type: NodeType.CHAINALYSIS_EXPOSURE_SERVICE,
+    {
+        type: 'chainalysis_exposure_service',
         category: NodeCategory.QUERY,
-        name: 'Exposure by Service',
-        description: 'Get risk exposure by service (Chainalysis)',
-        longDescription: 'Returns risk exposure analysis by service.',
-        icon: '🔍',
+        provider: APIProvider.CHAINALYSIS,
+
+        // Convenience properties
+        name: 'Exposure by Service (Chainalysis)',
+        icon: '🏪',
         color: '#00897b',
+        description: 'Get exposure to specific services',
+        longDescription: 'Returns exposure to specific known services and entities.',
+
+        // Nested objects
+        visual: { icon: '🏪', color: '#00897b', width: 320, height: 220 },
+        documentation: {
+            name: 'Exposure by Service (Chainalysis)',
+            description: 'Get exposure to specific services',
+            longDescription: 'Returns exposure to specific known services and entities.',
+            usage: 'Connect address → Execute → View service exposure',
+            examples: ['Check exchange exposure'],
+        },
         inputs: [
-            { id: 'credentials', label: 'credentials', type: 'input', dataType: 'credentials' },
-            { id: 'address', label: 'address', type: 'input', dataType: 'string', required: true },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, required: false, description: 'Optional credentials' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, required: true, description: 'Address to query' },
         ],
         outputs: [
-            { id: 'services', label: 'services', type: 'output', dataType: 'array' },
+            { id: 'services_exposure', label: 'services_exposure', type: DataType.JSON_DATA, description: 'Service exposure data' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Original address' },
         ],
         configuration: [
             {
-                name: 'asset',
-                label: 'Asset',
-                type: 'select',
-                required: true,
-                default: 'bitcoin',
-                options: [{ value: 'bitcoin', label: 'Bitcoin' }],
-                description: 'Cryptocurrency type',
+                id: 'asset', label: 'Asset', type: 'select', required: true, default: 'bitcoin', options: [
+                    { value: 'bitcoin', label: 'Bitcoin' },
+                    { value: 'ethereum', label: 'Ethereum' },
+                ], description: 'Cryptocurrency asset'
             },
         ],
-        provider: 'chainalysis',
     },
 
-    // ===========================================================================
-    // TRM LABS QUERY NODES
-    // ===========================================================================
-
-    [NodeType.TRM_ADDRESS_ATTRIBUTION]: {
-        type: NodeType.TRM_ADDRESS_ATTRIBUTION,
+    // =========================================================================
+    // QUERY NODES - TRM LABS (5)
+    // =========================================================================
+    {
+        type: 'trm_address_attribution',
         category: NodeCategory.QUERY,
-        name: 'Address Attribution',
-        description: 'Get entities for address (TRM Labs)',
-        longDescription: 'Returns entities associated with a blockchain address.',
-        icon: '👤',
+        provider: APIProvider.TRM,
+
+        // Convenience properties
+        name: 'Address Attribution (TRM)',
+        icon: '🎯',
         color: '#00897b',
+        description: 'Get entities associated with an address',
+        longDescription: 'Returns entities and attribution data for a blockchain address.',
+
+        // Nested objects
+        visual: { icon: '🎯', color: '#00897b', width: 300, height: 200 },
+        documentation: {
+            name: 'Address Attribution (TRM)',
+            description: 'Get entities associated with an address',
+            longDescription: 'Returns entities and attribution data for a blockchain address.',
+            usage: 'Connect address → Execute → View attribution',
+            examples: ['Identify address owner'],
+        },
         inputs: [
-            { id: 'credentials', label: 'credentials', type: 'input', dataType: 'credentials' },
-            { id: 'address', label: 'address', type: 'input', dataType: 'string', required: true },
-            { id: 'blockchain', label: 'blockchain', type: 'input', dataType: 'string', required: true },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, required: false, description: 'Optional credentials' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, required: true, description: 'Address to query' },
+            { id: 'blockchain', label: 'blockchain', type: DataType.STRING, required: true, description: 'Blockchain identifier' },
         ],
         outputs: [
-            { id: 'entities', label: 'entities', type: 'output', dataType: 'array' },
-            { id: 'entity_count', label: 'entity_count', type: 'output', dataType: 'number' },
+            { id: 'entities', label: 'entities', type: DataType.JSON_DATA, description: 'Associated entities' },
+            { id: 'entity_count', label: 'entity_count', type: DataType.NUMBER, description: 'Number of entities' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Original address' },
         ],
         configuration: [],
-        provider: 'trm',
     },
-
-    [NodeType.TRM_TOTAL_EXPOSURE]: {
-        type: NodeType.TRM_TOTAL_EXPOSURE,
+    {
+        type: 'trm_total_exposure',
         category: NodeCategory.QUERY,
-        name: 'Total Exposure',
-        description: 'Get total exposure analysis (TRM Labs)',
-        longDescription: 'Returns exposure to different entities.',
+        provider: APIProvider.TRM,
+
+        // Convenience properties
+        name: 'Total Exposure (TRM)',
         icon: '📊',
         color: '#00897b',
+        description: 'Get total exposure to entities',
+        longDescription: 'Returns comprehensive exposure analysis to different entities and categories.',
+
+        // Nested objects
+        visual: { icon: '📊', color: '#00897b', width: 320, height: 240 },
+        documentation: {
+            name: 'Total Exposure (TRM)',
+            description: 'Get total exposure to entities',
+            longDescription: 'Returns comprehensive exposure analysis to different entities and categories.',
+            usage: 'Connect address → Execute → View exposure',
+            examples: ['Analyze risk exposure'],
+        },
         inputs: [
-            { id: 'credentials', label: 'credentials', type: 'input', dataType: 'credentials' },
-            { id: 'address', label: 'address', type: 'input', dataType: 'string', required: true },
-            { id: 'blockchain', label: 'blockchain', type: 'input', dataType: 'string', required: true },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, required: false, description: 'Optional credentials' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, required: true, description: 'Address to query' },
+            { id: 'blockchain', label: 'blockchain', type: DataType.STRING, required: true, description: 'Blockchain identifier' },
         ],
         outputs: [
-            { id: 'exposures', label: 'exposures', type: 'output', dataType: 'array' },
-            { id: 'total_volume', label: 'total_volume', type: 'output', dataType: 'number' },
+            { id: 'exposures', label: 'exposures', type: DataType.JSON_DATA, description: 'Exposure data' },
+            { id: 'total_volume', label: 'total_volume', type: DataType.NUMBER, description: 'Total exposure volume' },
+            { id: 'high_risk_entities', label: 'high_risk_entities', type: DataType.JSON_DATA, description: 'High-risk entities' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Original address' },
         ],
         configuration: [],
-        provider: 'trm',
     },
-
-    // Placeholder stubs for remaining TRM nodes
-    [NodeType.TRM_ADDRESS_SUMMARY]: {
-        type: NodeType.TRM_ADDRESS_SUMMARY,
+    {
+        type: 'trm_address_summary',
         category: NodeCategory.QUERY,
-        name: 'Address Summary',
-        description: 'Get address metrics (TRM Labs)',
-        longDescription: 'Returns summary metrics for address.',
-        icon: '📈',
+        provider: APIProvider.TRM,
+
+        // Convenience properties
+        name: 'Address Summary (TRM)',
+        icon: '📋',
         color: '#00897b',
+        description: 'Get comprehensive address metrics',
+        longDescription: 'Returns summary metrics and analysis for an address.',
+
+        // Nested objects
+        visual: { icon: '📋', color: '#00897b', width: 300, height: 200 },
+        documentation: {
+            name: 'Address Summary (TRM)',
+            description: 'Get comprehensive address metrics',
+            longDescription: 'Returns summary metrics and analysis for an address.',
+            usage: 'Connect address → Execute → View summary',
+            examples: ['Get address overview'],
+        },
         inputs: [
-            { id: 'credentials', label: 'credentials', type: 'input', dataType: 'credentials' },
-            { id: 'address', label: 'address', type: 'input', dataType: 'string', required: true },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, required: false, description: 'Optional credentials' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, required: true, description: 'Address to query' },
+            { id: 'blockchain', label: 'blockchain', type: DataType.STRING, required: true, description: 'Blockchain identifier' },
         ],
         outputs: [
-            { id: 'metrics', label: 'metrics', type: 'output', dataType: 'object' },
+            { id: 'metrics', label: 'metrics', type: DataType.JSON_DATA, description: 'Address metrics' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Original address' },
         ],
         configuration: [],
-        provider: 'trm',
     },
-
-    [NodeType.TRM_ADDRESS_TRANSFERS]: {
-        type: NodeType.TRM_ADDRESS_TRANSFERS,
+    {
+        type: 'trm_address_transfers',
         category: NodeCategory.QUERY,
-        name: 'Address Transfers',
-        description: 'Get transfer history (TRM Labs)',
-        longDescription: 'Returns list of transfers for address.',
+        provider: APIProvider.TRM,
+
+        // Convenience properties
+        name: 'Address Transfers (TRM)',
         icon: '💸',
         color: '#00897b',
+        description: 'Get list of transfers for an address',
+        longDescription: 'Returns paginated list of all transfers associated with an address.',
+
+        // Nested objects
+        visual: { icon: '💸', color: '#00897b', width: 320, height: 220 },
+        documentation: {
+            name: 'Address Transfers (TRM)',
+            description: 'Get list of transfers for an address',
+            longDescription: 'Returns paginated list of all transfers associated with an address.',
+            usage: 'Connect address → Execute → View transfers',
+            examples: ['List all transactions'],
+        },
         inputs: [
-            { id: 'credentials', label: 'credentials', type: 'input', dataType: 'credentials' },
-            { id: 'address', label: 'address', type: 'input', dataType: 'string', required: true },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, required: false, description: 'Optional credentials' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, required: true, description: 'Address to query' },
+            { id: 'blockchain', label: 'blockchain', type: DataType.STRING, required: true, description: 'Blockchain identifier' },
         ],
         outputs: [
-            { id: 'transfers', label: 'transfers', type: 'output', dataType: 'array' },
+            { id: 'transfers', label: 'transfers', type: DataType.JSON_DATA, description: 'List of transfers' },
+            { id: 'transfer_count', label: 'transfer_count', type: DataType.NUMBER, description: 'Number of transfers' },
+            { id: 'total_volume_usd', label: 'total_volume_usd', type: DataType.NUMBER, description: 'Total volume in USD' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Original address' },
         ],
-        configuration: [],
-        provider: 'trm',
+        configuration: [
+            {
+                id: 'direction', label: 'Direction', type: 'select', required: false, default: 'BOTH', options: [
+                    { value: 'BOTH', label: 'Both' },
+                    { value: 'IN', label: 'Incoming' },
+                    { value: 'OUT', label: 'Outgoing' },
+                ], description: 'Transfer direction'
+            },
+            { id: 'max_results', label: 'Max Results', type: 'number', required: false, default: 100, description: 'Maximum transfers to return' },
+        ],
     },
-
-    [NodeType.TRM_NETWORK_INTELLIGENCE]: {
-        type: NodeType.TRM_NETWORK_INTELLIGENCE,
+    {
+        type: 'trm_network_intelligence',
         category: NodeCategory.QUERY,
-        name: 'Network Intelligence',
-        description: 'Get network intelligence (TRM Labs)',
-        longDescription: 'Returns network intelligence data.',
+        provider: APIProvider.TRM,
+
+        // Convenience properties
+        name: 'Network Intelligence (TRM)',
         icon: '🌐',
         color: '#00897b',
+        description: 'Get network intelligence data',
+        longDescription: 'Returns network-level intelligence including IP associations.',
+
+        // Nested objects
+        visual: { icon: '🌐', color: '#00897b', width: 300, height: 200 },
+        documentation: {
+            name: 'Network Intelligence (TRM)',
+            description: 'Get network intelligence data',
+            longDescription: 'Returns network-level intelligence including IP associations.',
+            usage: 'Connect address → Execute → View network data',
+            examples: ['Find IP associations'],
+        },
         inputs: [
-            { id: 'credentials', label: 'credentials', type: 'input', dataType: 'credentials' },
-            { id: 'address', label: 'address', type: 'input', dataType: 'string', required: true },
+            { id: 'credentials', label: 'credentials', type: DataType.CREDENTIALS, required: false, description: 'Optional credentials' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, required: true, description: 'Address to query' },
         ],
         outputs: [
-            { id: 'data', label: 'data', type: 'output', dataType: 'object' },
+            { id: 'ip_data', label: 'ip_data', type: DataType.JSON_DATA, description: 'IP intelligence data' },
+            { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Original address' },
         ],
         configuration: [],
-        provider: 'trm',
     },
 
-    // ===========================================================================
-    // OUTPUT NODES
-    // ===========================================================================
-
-    [NodeType.TXT_EXPORT]: {
-        type: NodeType.TXT_EXPORT,
+    // =========================================================================
+    // OUTPUT NODES (5)
+    // =========================================================================
+    {
+        type: 'txt_export',
         category: NodeCategory.OUTPUT,
-        name: 'Export to TXT',
-        description: 'Export results as text file',
-        longDescription: 'Generates a downloadable text file with workflow results.',
+        provider: APIProvider.NONE,
+
+        // Convenience properties
+        name: 'TXT Export',
         icon: '📄',
         color: '#f57c00',
+        description: 'Export results to text file',
+        longDescription: 'Exports connected data to a plain text file.',
+
+        // Nested objects
+        visual: { icon: '📄', color: '#f57c00', width: 260, height: 150 },
+        documentation: {
+            name: 'TXT Export',
+            description: 'Export results to text file',
+            longDescription: 'Exports connected data to a plain text file.',
+            usage: 'Connect data → Configure filename → Execute → Download',
+            examples: ['Export address list to text'],
+        },
         inputs: [
-            { id: 'data', label: 'data', type: 'input', dataType: 'any', required: true },
+            { id: 'data', label: 'data', type: DataType.ANY, required: true, description: 'Data to export' },
         ],
         outputs: [
-            { id: 'file_url', label: 'file_url', type: 'output', dataType: 'string' },
+            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Path to exported file' },
         ],
         configuration: [
-            {
-                name: 'filename',
-                label: 'Filename',
-                type: 'string',
-                description: 'Name of output file',
-                default: 'results.txt',
-                placeholder: 'results.txt',
-            },
+            { id: 'filename', label: 'Filename', type: 'string', required: true, default: 'export.txt', description: 'Output filename' },
         ],
     },
-
-    [NodeType.EXCEL_EXPORT]: {
-        type: NodeType.EXCEL_EXPORT,
+    {
+        type: 'excel_export',
         category: NodeCategory.OUTPUT,
-        name: 'Export to Excel',
-        description: 'Export results as Excel spreadsheet',
-        longDescription: 'Generates a formatted Excel file with workflow results.',
+        provider: APIProvider.NONE,
+
+        // Convenience properties
+        name: 'Excel Export',
         icon: '📊',
         color: '#f57c00',
+        description: 'Export results to Excel spreadsheet',
+        longDescription: 'Exports connected data to formatted Excel file with multiple sheets.',
+
+        // Nested objects
+        visual: { icon: '📊', color: '#f57c00', width: 280, height: 180 },
+        documentation: {
+            name: 'Excel Export',
+            description: 'Export results to Excel spreadsheet',
+            longDescription: 'Exports connected data to formatted Excel file with multiple sheets.',
+            usage: 'Connect data → Configure → Execute → Download',
+            examples: ['Export investigation results to Excel'],
+        },
         inputs: [
-            { id: 'data', label: 'data', type: 'input', dataType: 'any', required: true },
+            { id: 'data', label: 'data', type: DataType.ANY, required: true, description: 'Data to export' },
         ],
         outputs: [
-            { id: 'file_url', label: 'file_url', type: 'output', dataType: 'string' },
+            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Path to exported file' },
         ],
         configuration: [
-            {
-                name: 'filename',
-                label: 'Filename',
-                type: 'string',
-                description: 'Name of output file',
-                default: 'results.xlsx',
-                placeholder: 'results.xlsx',
-            },
+            { id: 'filename', label: 'Filename', type: 'string', required: true, default: 'export.xlsx', description: 'Output filename' },
+            { id: 'sheet_name', label: 'Sheet Name', type: 'string', required: false, default: 'Results', description: 'Excel sheet name' },
         ],
     },
-
-    [NodeType.JSON_EXPORT]: {
-        type: NodeType.JSON_EXPORT,
+    {
+        type: 'json_export',
         category: NodeCategory.OUTPUT,
-        name: 'Export to JSON',
-        description: 'Export results as JSON file',
-        longDescription: 'Generates a JSON file with workflow results.',
-        icon: '📦',
+        provider: APIProvider.NONE,
+
+        // Convenience properties
+        name: 'JSON Export',
+        icon: '{ }',
         color: '#f57c00',
+        description: 'Export results to JSON file',
+        longDescription: 'Exports connected data to JSON format.',
+
+        // Nested objects
+        visual: { icon: '{ }', color: '#f57c00', width: 260, height: 150 },
+        documentation: {
+            name: 'JSON Export',
+            description: 'Export results to JSON file',
+            longDescription: 'Exports connected data to JSON format.',
+            usage: 'Connect data → Configure → Execute → Download',
+            examples: ['Export structured data to JSON'],
+        },
         inputs: [
-            { id: 'data', label: 'data', type: 'input', dataType: 'any', required: true },
+            { id: 'data', label: 'data', type: DataType.ANY, required: true, description: 'Data to export' },
         ],
         outputs: [
-            { id: 'file_url', label: 'file_url', type: 'output', dataType: 'string' },
+            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Path to exported file' },
         ],
         configuration: [
-            {
-                name: 'filename',
-                label: 'Filename',
-                type: 'string',
-                description: 'Name of output file',
-                default: 'results.json',
-                placeholder: 'results.json',
-            },
+            { id: 'filename', label: 'Filename', type: 'string', required: true, default: 'export.json', description: 'Output filename' },
+            { id: 'pretty_print', label: 'Pretty Print', type: 'boolean', required: false, default: true, description: 'Format with indentation' },
         ],
     },
-
-    [NodeType.CSV_EXPORT]: {
-        type: NodeType.CSV_EXPORT,
+    {
+        type: 'csv_export',
         category: NodeCategory.OUTPUT,
-        name: 'Export to CSV',
-        description: 'Export results as CSV file',
-        longDescription: 'Generates a CSV file with workflow results.',
-        icon: '📑',
+        provider: APIProvider.NONE,
+
+        // Convenience properties
+        name: 'CSV Export',
+        icon: '📋',
         color: '#f57c00',
+        description: 'Export results to CSV file',
+        longDescription: 'Exports connected data to CSV format for spreadsheet import.',
+
+        // Nested objects
+        visual: { icon: '📋', color: '#f57c00', width: 260, height: 150 },
+        documentation: {
+            name: 'CSV Export',
+            description: 'Export results to CSV file',
+            longDescription: 'Exports connected data to CSV format for spreadsheet import.',
+            usage: 'Connect data → Configure → Execute → Download',
+            examples: ['Export address data to CSV'],
+        },
         inputs: [
-            { id: 'data', label: 'data', type: 'input', dataType: 'any', required: true },
+            { id: 'data', label: 'data', type: DataType.ANY, required: true, description: 'Data to export' },
         ],
         outputs: [
-            { id: 'file_url', label: 'file_url', type: 'output', dataType: 'string' },
+            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Path to exported file' },
         ],
         configuration: [
-            {
-                name: 'filename',
-                label: 'Filename',
-                type: 'string',
-                description: 'Name of output file',
-                default: 'results.csv',
-                placeholder: 'results.csv',
-            },
+            { id: 'filename', label: 'Filename', type: 'string', required: true, default: 'export.csv', description: 'Output filename' },
         ],
     },
-
-    [NodeType.CONSOLE_LOG]: {
-        type: NodeType.CONSOLE_LOG,
+    {
+        type: 'console_log',
         category: NodeCategory.OUTPUT,
+        provider: APIProvider.NONE,
+
+        // Convenience properties
         name: 'Console Log',
-        description: 'Display results in output panel',
-        longDescription: 'Shows results in the workflow output panel for quick viewing.',
         icon: '🖥️',
         color: '#f57c00',
+        description: 'Output data to execution log',
+        longDescription: 'Outputs connected data to the execution log panel for debugging.',
+
+        // Nested objects
+        visual: { icon: '🖥️', color: '#f57c00', width: 260, height: 150 },
+        documentation: {
+            name: 'Console Log',
+            description: 'Output data to execution log',
+            longDescription: 'Outputs connected data to the execution log panel for debugging.',
+            usage: 'Connect any data → Execute → View in output panel',
+            examples: ['Debug workflow data flow'],
+        },
         inputs: [
-            { id: 'data', label: 'data', type: 'input', dataType: 'any', required: true },
+            { id: 'data', label: 'data', type: DataType.ANY, required: true, description: 'Data to log' },
         ],
         outputs: [],
         configuration: [
+            { id: 'label', label: 'Label', type: 'string', required: false, default: 'Output', description: 'Label for log entry' },
             {
-                name: 'label',
-                label: 'Label',
-                type: 'string',
-                description: 'Label for output',
-                default: 'Output',
-                placeholder: 'Output',
+                id: 'format', label: 'Format', type: 'select', required: false, default: 'json', options: [
+                    { value: 'json', label: 'JSON' },
+                    { value: 'text', label: 'Text' },
+                ], description: 'Output format'
             },
         ],
     },
-};
+];
 
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
 
 /**
- * Get node definition by type.
- */
-export function getNodeDefinition(type: NodeType): NodeTypeDefinition {
-    return NODE_REGISTRY[type];
-}
-
-/**
- * Get all nodes of a specific category.
- */
-export function getNodesByCategory(category: NodeCategory): NodeTypeDefinition[] {
-    return Object.values(NODE_REGISTRY).filter(node => node.category === category);
-}
-
-/**
- * Get all node types as array.
+ * Get all node types.
+ * 
+ * @returns Array of all node type definitions.
  */
 export function getAllNodeTypes(): NodeTypeDefinition[] {
-    return Object.values(NODE_REGISTRY);
+    return NODE_TYPES;
 }
 
+/**
+ * Get node type by type string.
+ * 
+ * @param type - Node type identifier.
+ * @returns Node type definition or undefined.
+ */
+export function getNodeType(type: string): NodeTypeDefinition | undefined {
+    return NODE_TYPES.find((n) => n.type === type);
+}
 
-// Re-export for convenience
-export { NodeCategory };
+/**
+ * Get node types by category.
+ * 
+ * @param category - Node category to filter by.
+ * @returns Array of node type definitions in that category.
+ */
+export function getNodeTypesByCategory(category: NodeCategory): NodeTypeDefinition[] {
+    return NODE_TYPES.filter((n) => n.category === category);
+}
+
+/**
+ * Get node types by provider.
+ * 
+ * @param provider - API provider to filter by.
+ * @returns Array of node type definitions for that provider.
+ */
+export function getNodeTypesByProvider(provider: APIProvider): NodeTypeDefinition[] {
+    return NODE_TYPES.filter((n) => n.provider === provider);
+}
+
+/**
+ * Get color for a node category.
+ * 
+ * @param category - Node category.
+ * @returns Hex color string.
+ */
+export function getCategoryColor(category: NodeCategory): string {
+    return CATEGORY_COLORS[category] || '#666666';
+}
+
+// =============================================================================
+// DEFAULT EXPORT
+// =============================================================================
+
+export default NODE_TYPES;

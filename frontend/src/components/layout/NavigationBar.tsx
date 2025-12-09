@@ -86,6 +86,10 @@ interface NavigationBarProps {
      * Optional: Disable save button if no changes
      */
     hasUnsavedChanges?: boolean;
+
+    isSaving: boolean;
+
+    isLoading: boolean;
 }
 
 // =============================================================================

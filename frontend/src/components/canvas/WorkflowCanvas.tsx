@@ -1,20 +1,42 @@
 // =============================================================================
-// FILE: frontend/src/hooks/useWorkflow.ts
+// FILE: frontend/src/components/canvas/WorkflowCanvas.tsx
 // =============================================================================
-// Custom hook for managing workflow state and operations.
-// Handles nodes, edges, viewport, and workflow CRUD operations.
-// =============================================================================
-
-import { useState, useCallback, useMemo } from 'react';
-import { Node, Edge, Viewport, applyNodeChanges, applyEdgeChanges, addEdge } from 'reactflow';
-import { workflowApi, Workflow } from '../api/workflow_api';
-import { getAllNodeTypes } from '../types/node_types';
-
-// =============================================================================
-// HOOK
+// Main workflow canvas component using React Flow.
 // =============================================================================
 
-export const useWorkflow = () => {
+import React, { useState, useCallback, useMemo } from 'react';
+import ReactFlow, {
+    Background,
+    Controls,
+    MiniMap,
+    Node,
+    Edge,
+    OnNodesChange,
+    OnEdgesChange,
+    OnConnect,
+    Connection,
+    BackgroundVariant,
+    Viewport,
+    NodeChange,
+    EdgeChange,
+    applyNodeChanges,
+    applyEdgeChanges,
+    addEdge,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import { workflowApi, Workflow } from '../../api/workflow_api';
+import {
+    getAllNodeTypes,
+    NodeTypeDefinition,
+    NodeInput,
+    NodeOutput
+} from '../../types/node_types';
+
+// =============================================================================
+// COMPONENT
+// =============================================================================
+
+const WorkflowCanvas: React.FC = () => {
     // ---------------------------------------------------------------------------
     // STATE
     // ---------------------------------------------------------------------------
@@ -43,9 +65,6 @@ export const useWorkflow = () => {
         return nodes.length > 0;
     }, [nodes]);
 
-    // Workflow name (alias for compatibility)
-    const name = workflowName;
-
     // ---------------------------------------------------------------------------
     // DELETE NODE
     // ---------------------------------------------------------------------------
@@ -54,10 +73,10 @@ export const useWorkflow = () => {
         console.log('[DELETE] Removing node:', nodeId);
 
         // Remove node
-        setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+        setNodes((nds: Node[]) => nds.filter((node) => node.id !== nodeId));
 
         // Remove connected edges
-        setEdges((eds) => eds.filter(
+        setEdges((eds: Edge[]) => eds.filter(
             (edge) => edge.source !== nodeId && edge.target !== nodeId
         ));
     }, []);
@@ -70,7 +89,7 @@ export const useWorkflow = () => {
         (nodeType: string, position: { x: number; y: number }) => {
             // Get all node type definitions
             const allNodeTypes = getAllNodeTypes();
-            const nodeDefinition = allNodeTypes.find((n) => n.type === nodeType);
+            const nodeDefinition = allNodeTypes.find((n: NodeTypeDefinition) => n.type === nodeType);
 
             if (!nodeDefinition) {
                 console.error('[ERROR] Unknown node type:', nodeType);
@@ -97,16 +116,16 @@ export const useWorkflow = () => {
                     icon: nodeDefinition.icon,
                     nodeType: nodeType,
 
-                    // Map inputs from definition
-                    inputs: nodeDefinition.inputs.map((input) => ({
+                    // Map inputs from definition with proper typing
+                    inputs: nodeDefinition.inputs.map((input: NodeInput) => ({
                         id: input.id,
                         label: input.label,
                         type: input.type,
                         color: input.type, // Use type as color key
                     })),
 
-                    // Map outputs from definition
-                    outputs: nodeDefinition.outputs.map((output) => ({
+                    // Map outputs from definition with proper typing
+                    outputs: nodeDefinition.outputs.map((output: NodeOutput) => ({
                         id: output.id,
                         label: output.label,
                         type: output.type,
@@ -121,7 +140,7 @@ export const useWorkflow = () => {
                 },
             };
 
-            setNodes((nds) => [...nds, newNode]);
+            setNodes((nds: Node[]) => [...nds, newNode]);
 
             console.log('[ADD NODE] Created:', nodeDefinition.name, 'at', snappedPosition);
         },
@@ -264,9 +283,6 @@ export const useWorkflow = () => {
         console.log('[NEW] SUCCESS - New workflow created');
     }, [hasUnsavedChanges]);
 
-    // Alias for compatibility
-    const newWorkflow = createNewWorkflow;
-
     // ---------------------------------------------------------------------------
     // EXECUTE WORKFLOW
     // ---------------------------------------------------------------------------
@@ -302,7 +318,7 @@ export const useWorkflow = () => {
     const createExampleNodes = useCallback(() => {
         console.log('[TEST] Creating UE5-style example nodes');
 
-        const exampleNodes = [
+        const exampleNodes: Node[] = [
             {
                 id: 'example_1',
                 type: 'default',
@@ -396,62 +412,110 @@ export const useWorkflow = () => {
     }, [deleteNode]);
 
     // ---------------------------------------------------------------------------
-    // REACT FLOW HANDLERS (for native ReactFlow integration)
+    // REACT FLOW HANDLERS
     // ---------------------------------------------------------------------------
 
-    const onNodesChange = useCallback((changes: any) => {
-        setNodes((nds) => applyNodeChanges(changes, nds));
+    const onNodesChange: OnNodesChange = useCallback((changes: NodeChange[]) => {
+        setNodes((nds: Node[]) => applyNodeChanges(changes, nds));
     }, []);
 
-    const onEdgesChange = useCallback((changes: any) => {
-        setEdges((eds) => applyEdgeChanges(changes, eds));
+    const onEdgesChange: OnEdgesChange = useCallback((changes: EdgeChange[]) => {
+        setEdges((eds: Edge[]) => applyEdgeChanges(changes, eds));
     }, []);
 
-    const onConnect = useCallback((connection: any) => {
-        setEdges((eds) => addEdge(connection, eds));
+    const onConnect: OnConnect = useCallback((connection: Connection) => {
+        setEdges((eds: Edge[]) => addEdge(connection, eds));
         console.log('[CONNECT] Nodes connected:', connection.source, '->', connection.target);
     }, []);
 
     // ---------------------------------------------------------------------------
-    // RETURN
+    // DRAG AND DROP HANDLERS
     // ---------------------------------------------------------------------------
 
-    return {
-        // React Flow state
-        nodes,
-        edges,
-        viewport,
-        setNodes,
-        setEdges,
-        setViewport,
+    const onDragOver = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }, []);
 
-        // React Flow handlers
-        onNodesChange,
-        onEdgesChange,
-        onConnect,
+    const onDrop = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
 
-        // Workflow metadata
-        currentWorkflowId,
-        workflowName,
-        name, // Alias
-        setWorkflowName,
+        const nodeType = event.dataTransfer.getData('application/reactflow');
 
-        // Computed properties
-        hasUnsavedChanges,
-        canExecute,
+        if (!nodeType) {
+            return;
+        }
 
-        // Operations
-        saveWorkflow,
-        loadWorkflow,
-        createNewWorkflow,
-        newWorkflow, // Alias
-        executeWorkflow,
-        createExampleNodes, // Create UE5-style test nodes
-        addNodeAtPosition, // Drag-and-drop handler
-        deleteNode, // Delete node handler
+        // Get canvas position from drop event
+        const reactFlowBounds = event.currentTarget.getBoundingClientRect();
+        const position = {
+            x: event.clientX - reactFlowBounds.left,
+            y: event.clientY - reactFlowBounds.top,
+        };
 
-        // Loading states
-        isSaving,
-        isLoading,
-    };
+        addNodeAtPosition(nodeType, position);
+    }, [addNodeAtPosition]);
+
+    // ---------------------------------------------------------------------------
+    // RENDER
+    // ---------------------------------------------------------------------------
+
+    return (
+        <div style={{ width: '100%', height: '100%', backgroundColor: '#1a1a1a' }}>
+            <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+                fitView
+                attributionPosition="bottom-left"
+                style={{ backgroundColor: '#1a1a1a' }}
+            >
+                {/* Grid background (Unreal Engine style) */}
+                <Background
+                    variant={BackgroundVariant.Dots}
+                    gap={20}
+                    size={1}
+                    color="#2a2a2a"
+                />
+
+                {/* Zoom/Pan controls */}
+                <Controls
+                    style={{
+                        backgroundColor: '#2a2a2a',
+                        border: '1px solid #3a3a3a',
+                    }}
+                />
+
+                {/* Minimap */}
+                <MiniMap
+                    nodeColor={(node) => {
+                        // Color nodes by category in minimap
+                        const category = node.data?.category;
+                        const colors: Record<string, string> = {
+                            configuration: '#4a148c',
+                            input: '#1976d2',
+                            query: '#00897b',
+                            output: '#f57c00',
+                        };
+                        return colors[category] || '#666666';
+                    }}
+                    style={{
+                        backgroundColor: '#1a1a1a',
+                        border: '1px solid #3a3a3a',
+                    }}
+                    maskColor="rgba(0, 0, 0, 0.5)"
+                />
+            </ReactFlow>
+        </div>
+    );
 };
+
+// =============================================================================
+// EXPORT
+// =============================================================================
+
+export default WorkflowCanvas;

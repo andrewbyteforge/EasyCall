@@ -23,6 +23,7 @@ interface OutputPanelProps {
     logs?: string[];
     /** Callback to clear logs */
     onClear?: () => void;
+    onClose: () => void;
 }
 
 // =============================================================================

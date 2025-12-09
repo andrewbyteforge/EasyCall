@@ -224,12 +224,7 @@ const MainLayout: React.FC = () => {
                     }}
                 >
                     <WorkflowCanvas
-                        nodes={workflow.nodes}
-                        edges={workflow.edges}
-                        onNodesChange={handleNodesChange}
-                        onEdgesChange={handleEdgesChange}
-                        onConnect={handleConnect}
-                        onAddNode={handleAddNode}
+  
                     />
                 </Box>
             </Box>

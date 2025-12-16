@@ -1,7 +1,7 @@
 // =============================================================================
 // FILE: frontend/src/components/canvas/WorkflowCanvas.tsx
 // =============================================================================
-// Main workflow canvas component using React Flow.
+// Main workflow canvas component using React Flow with custom UE5-style nodes.
 // =============================================================================
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -22,15 +22,60 @@ import ReactFlow, {
     applyNodeChanges,
     applyEdgeChanges,
     addEdge,
+    NodeTypes,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { workflowApi, Workflow } from '../../api/workflow_api';
 import {
     getAllNodeTypes,
     NodeTypeDefinition,
-    NodeInput,
-    NodeOutput
+    getNodeType,
+    getCategoryColor,
 } from '../../types/node_types';
+
+// Import your custom BaseNode component
+import BaseNode from '../nodes/BaseNode';
+
+// =============================================================================
+// CUSTOM NODE TYPES REGISTRATION
+// =============================================================================
+
+/**
+ * Register all 21 node types to use the BaseNode component.
+ * This tells React Flow to render our custom component instead of defaults.
+ */
+const customNodeTypes: NodeTypes = {
+    // Configuration Nodes
+    credential_chainalysis: BaseNode,
+    credential_trm: BaseNode,
+
+    // Input Nodes
+    single_address: BaseNode,
+    batch_input: BaseNode,
+    transaction_hash: BaseNode,
+
+    // Chainalysis Query Nodes
+    chainalysis_cluster_info: BaseNode,
+    chainalysis_cluster_balance: BaseNode,
+    chainalysis_cluster_counterparties: BaseNode,
+    chainalysis_transaction_details: BaseNode,
+    chainalysis_exposure_category: BaseNode,
+    chainalysis_exposure_service: BaseNode,
+
+    // TRM Labs Query Nodes
+    trm_address_attribution: BaseNode,
+    trm_total_exposure: BaseNode,
+    trm_address_summary: BaseNode,
+    trm_address_transfers: BaseNode,
+    trm_network_intelligence: BaseNode,
+
+    // Output Nodes
+    txt_export: BaseNode,
+    excel_export: BaseNode,
+    json_export: BaseNode,
+    csv_export: BaseNode,
+    console_log: BaseNode,
+};
 
 // =============================================================================
 // COMPONENT
@@ -87,9 +132,8 @@ const WorkflowCanvas: React.FC = () => {
 
     const addNodeAtPosition = useCallback(
         (nodeType: string, position: { x: number; y: number }) => {
-            // Get all node type definitions
-            const allNodeTypes = getAllNodeTypes();
-            const nodeDefinition = allNodeTypes.find((n: NodeTypeDefinition) => n.type === nodeType);
+            // Get node definition
+            const nodeDefinition = getNodeType(nodeType);
 
             if (!nodeDefinition) {
                 console.error('[ERROR] Unknown node type:', nodeType);
@@ -99,44 +143,34 @@ const WorkflowCanvas: React.FC = () => {
             // Generate unique ID
             const id = `${nodeType}_${Date.now()}`;
 
-            // Snap to grid (10x10)
+            // Snap to grid (15x15 to match React Flow snap settings)
             const snappedPosition = {
-                x: Math.round(position.x / 10) * 10,
-                y: Math.round(position.y / 10) * 10,
+                x: Math.round(position.x / 15) * 15,
+                y: Math.round(position.y / 15) * 15,
             };
 
-            // Create node data matching UE5Node component expectations
+            // ✅ CRITICAL: Create node with proper structure for BaseNode
             const newNode: Node = {
                 id,
-                type: 'default',
+                type: nodeType, // ← Use actual node type, NOT 'default'
                 position: snappedPosition,
                 data: {
                     label: nodeDefinition.name,
                     category: nodeDefinition.category,
                     icon: nodeDefinition.icon,
-                    nodeType: nodeType,
+                    description: nodeDefinition.description,
 
-                    // Map inputs from definition with proper typing
-                    inputs: nodeDefinition.inputs.map((input: NodeInput) => ({
+                    // Map inputs to format BaseNode expects
+                    inputs: nodeDefinition.inputs.map((input) => ({
                         id: input.id,
                         label: input.label,
-                        type: input.type,
-                        color: input.type, // Use type as color key
                     })),
 
-                    // Map outputs from definition with proper typing
-                    outputs: nodeDefinition.outputs.map((output: NodeOutput) => ({
+                    // Map outputs to format BaseNode expects
+                    outputs: nodeDefinition.outputs.map((output) => ({
                         id: output.id,
                         label: output.label,
-                        type: output.type,
-                        color: output.type, // Use type as color key
                     })),
-
-                    // Initialize with default properties
-                    properties: [],
-
-                    // Delete handler (using closure with captured ID)
-                    onDelete: () => deleteNode(id),
                 },
             };
 
@@ -144,7 +178,7 @@ const WorkflowCanvas: React.FC = () => {
 
             console.log('[ADD NODE] Created:', nodeDefinition.name, 'at', snappedPosition);
         },
-        [deleteNode]
+        []
     );
 
     // ---------------------------------------------------------------------------
@@ -218,16 +252,7 @@ const WorkflowCanvas: React.FC = () => {
                 console.log('[LOAD] Loading workflow:', workflowId);
                 const workflow = await workflowApi.getWorkflow(workflowId);
 
-                // Restore nodes with delete handlers
-                const nodesWithHandlers = (workflow.canvas_data.nodes || []).map((node: Node) => ({
-                    ...node,
-                    data: {
-                        ...node.data,
-                        onDelete: () => deleteNode(node.id),
-                    },
-                }));
-
-                setNodes(nodesWithHandlers);
+                setNodes(workflow.canvas_data.nodes || []);
                 setEdges(workflow.canvas_data.edges || []);
                 setViewport(workflow.canvas_data.viewport || { x: 0, y: 0, zoom: 1 });
                 setCurrentWorkflowId(workflow.uuid);
@@ -251,7 +276,7 @@ const WorkflowCanvas: React.FC = () => {
                 setIsLoading(false);
             }
         },
-        [deleteNode]
+        []
     );
 
     // ---------------------------------------------------------------------------
@@ -299,117 +324,127 @@ const WorkflowCanvas: React.FC = () => {
         // TODO: Implement actual workflow execution in Phase 4
         try {
             // Future: Call execution API endpoint
-            // if (currentWorkflowId) {
-            //     const result = await executionApi.executeWorkflow(currentWorkflowId);
-            //     return result;
-            // }
-
             console.log('[EXECUTE] SUCCESS - Workflow execution completed (placeholder)');
         } catch (error) {
             console.error('[EXECUTE] ERROR - Failed to execute workflow:', error);
             throw error;
         }
-    }, [canExecute, workflowName, nodes, edges, currentWorkflowId]);
+    }, [canExecute, workflowName, nodes, edges]);
 
     // ---------------------------------------------------------------------------
-    // CREATE EXAMPLE NODES (UE5 Style - for testing)
+    // CREATE EXAMPLE NODES (for testing)
     // ---------------------------------------------------------------------------
 
     const createExampleNodes = useCallback(() => {
-        console.log('[TEST] Creating UE5-style example nodes');
+        console.log('[TEST] Creating example workflow with styled nodes');
 
         const exampleNodes: Node[] = [
+            // Configuration node
             {
-                id: 'example_1',
-                type: 'default',
+                id: 'cred_1',
+                type: 'credential_chainalysis', // ← Using real node type
                 position: { x: 100, y: 100 },
                 data: {
-                    label: 'Single Address',
-                    category: 'input' as const,
+                    label: 'Chainalysis Credentials',
+                    category: 'configuration',
+                    icon: '🔑',
+                    description: 'API credentials for Chainalysis',
+                    inputs: [],
+                    outputs: [{ id: 'credentials', label: 'credentials' }],
+                },
+            },
+
+            // Input node
+            {
+                id: 'input_1',
+                type: 'single_address', // ← Using real node type
+                position: { x: 100, y: 280 },
+                data: {
+                    label: 'Single Address Input',
+                    category: 'input',
                     icon: '📍',
-                    nodeType: 'single_address',
+                    description: 'Enter a single blockchain address',
                     inputs: [],
                     outputs: [
-                        { id: 'address', label: 'Address', type: 'address', color: 'address' },
-                        { id: 'network', label: 'Network', type: 'string', color: 'string' },
+                        { id: 'address', label: 'address' },
+                        { id: 'blockchain', label: 'blockchain' },
                     ],
-                    properties: [
-                        { key: 'Address', value: '0x742d35Cc...' },
-                        { key: 'Network', value: 'Ethereum' },
-                    ],
-                    onDelete: () => deleteNode('example_1'),
                 },
             },
+
+            // Query node
             {
-                id: 'example_2',
-                type: 'default',
-                position: { x: 400, y: 80 },
+                id: 'query_1',
+                type: 'chainalysis_cluster_info', // ← Using real node type
+                position: { x: 450, y: 180 },
                 data: {
-                    label: 'Total Exposure',
-                    category: 'query' as const,
-                    icon: '🔍',
-                    nodeType: 'trm_total_exposure',
+                    label: 'Cluster Info (Chainalysis)',
+                    category: 'query',
+                    icon: '🏢',
+                    description: 'Get cluster information',
                     inputs: [
-                        { id: 'address', label: 'Address', type: 'address', color: 'address' },
+                        { id: 'credentials', label: 'credentials' },
+                        { id: 'address', label: 'address' },
                     ],
                     outputs: [
-                        { id: 'exposure', label: 'Exposure Data', type: 'data', color: 'data' },
-                        { id: 'risk', label: 'Risk Score', type: 'number', color: 'number' },
+                        { id: 'cluster_name', label: 'cluster_name' },
+                        { id: 'category', label: 'category' },
+                        { id: 'cluster_address', label: 'cluster_address' },
                     ],
-                    properties: [
-                        { key: 'Provider', value: 'TRM Labs' },
-                        { key: 'Timeout', value: '30s' },
-                    ],
-                    onDelete: () => deleteNode('example_2'),
                 },
             },
+
+            // Output node
             {
-                id: 'example_3',
-                type: 'default',
-                position: { x: 750, y: 100 },
+                id: 'output_1',
+                type: 'excel_export', // ← Using real node type
+                position: { x: 820, y: 200 },
                 data: {
                     label: 'Excel Export',
-                    category: 'output' as const,
-                    icon: '📤',
-                    nodeType: 'excel_export',
-                    inputs: [
-                        { id: 'data', label: 'Data', type: 'data', color: 'data' },
-                    ],
-                    outputs: [],
-                    properties: [
-                        { key: 'Format', value: 'XLSX' },
-                        { key: 'Include Headers', value: 'Yes' },
-                    ],
-                    onDelete: () => deleteNode('example_3'),
+                    category: 'output',
+                    icon: '📊',
+                    description: 'Export to Excel file',
+                    inputs: [{ id: 'data', label: 'data' }],
+                    outputs: [{ id: 'file_path', label: 'file_path' }],
                 },
             },
         ];
 
         setNodes(exampleNodes);
 
+        // Create connections
         setEdges([
             {
-                id: 'e1-2',
-                source: 'example_1',
-                target: 'example_2',
+                id: 'e-cred-query',
+                source: 'cred_1',
+                target: 'query_1',
+                sourceHandle: 'credentials',
+                targetHandle: 'credentials',
+                type: 'smoothstep',
+                animated: true,
+            },
+            {
+                id: 'e-input-query',
+                source: 'input_1',
+                target: 'query_1',
                 sourceHandle: 'address',
                 targetHandle: 'address',
                 type: 'smoothstep',
-                style: { stroke: '#22c55e', strokeWidth: 2 },
+                animated: true,
             },
             {
-                id: 'e2-3',
-                source: 'example_2',
-                target: 'example_3',
-                sourceHandle: 'exposure',
+                id: 'e-query-output',
+                source: 'query_1',
+                target: 'output_1',
+                sourceHandle: 'cluster_name',
                 targetHandle: 'data',
                 type: 'smoothstep',
-                style: { stroke: '#3b82f6', strokeWidth: 2 },
+                animated: true,
             },
         ]);
 
-        console.log('[TEST] SUCCESS - 3 example nodes created with connections');
-    }, [deleteNode]);
+        console.log('[TEST] SUCCESS - Example workflow created with 4 styled nodes');
+    }, []);
 
     // ---------------------------------------------------------------------------
     // REACT FLOW HANDLERS
@@ -462,6 +497,27 @@ const WorkflowCanvas: React.FC = () => {
 
     return (
         <div style={{ width: '100%', height: '100%', backgroundColor: '#1a1a1a' }}>
+            {/* Test button - temporary for Phase 2 */}
+            <button
+                onClick={createExampleNodes}
+                style={{
+                    position: 'absolute',
+                    top: '20px',
+                    left: '20px',
+                    zIndex: 10,
+                    padding: '10px 20px',
+                    backgroundColor: '#00897b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                }}
+            >
+                🎨 Create Example Nodes
+            </button>
+
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -470,44 +526,48 @@ const WorkflowCanvas: React.FC = () => {
                 onConnect={onConnect}
                 onDrop={onDrop}
                 onDragOver={onDragOver}
+                nodeTypes={customNodeTypes} // ← CRITICAL: Use custom node types
                 fitView
+                snapToGrid
+                snapGrid={[15, 15]}
                 attributionPosition="bottom-left"
                 style={{ backgroundColor: '#1a1a1a' }}
+                defaultEdgeOptions={{
+                    type: 'smoothstep',
+                    animated: true,
+                    style: { stroke: '#00897b', strokeWidth: 2 },
+                }}
             >
                 {/* Grid background (Unreal Engine style) */}
                 <Background
                     variant={BackgroundVariant.Dots}
                     gap={20}
                     size={1}
-                    color="#2a2a2a"
+                    color="#404040"
                 />
 
                 {/* Zoom/Pan controls */}
                 <Controls
                     style={{
                         backgroundColor: '#2a2a2a',
-                        border: '1px solid #3a3a3a',
+                        border: '1px solid #404040',
                     }}
                 />
 
-                {/* Minimap */}
+                {/* Minimap with category colors */}
                 <MiniMap
                     nodeColor={(node) => {
-                        // Color nodes by category in minimap
-                        const category = node.data?.category;
-                        const colors: Record<string, string> = {
-                            configuration: '#4a148c',
-                            input: '#1976d2',
-                            query: '#00897b',
-                            output: '#f57c00',
-                        };
-                        return colors[category] || '#666666';
+                        const nodeDef = getNodeType(node.type || 'default');
+                        if (nodeDef) {
+                            return getCategoryColor(nodeDef.category);
+                        }
+                        return '#666666';
                     }}
                     style={{
                         backgroundColor: '#1a1a1a',
-                        border: '1px solid #3a3a3a',
+                        border: '1px solid #404040',
                     }}
-                    maskColor="rgba(0, 0, 0, 0.5)"
+                    maskColor="rgba(26, 26, 26, 0.6)"
                 />
             </ReactFlow>
         </div>

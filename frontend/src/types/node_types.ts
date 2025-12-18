@@ -35,6 +35,7 @@ export enum DataType {
     ADDRESS = 'address',
     ADDRESS_LIST = 'address_list',
     TRANSACTION = 'transaction',
+    TRANSACTION_LIST = 'transaction_list',
     CREDENTIALS = 'credentials',
     JSON_DATA = 'json_data',
     STRING = 'string',
@@ -74,7 +75,7 @@ export interface NodeOutput {
 export interface NodeConfigField {
     id: string;
     label: string;
-    type: 'string' | 'number' | 'boolean' | 'select' | 'password' | 'file';
+    type: 'string' | 'number' | 'boolean' | 'select' | 'password' | 'file' | 'filepath';
     required: boolean;
     default?: any;
     placeholder?: string;
@@ -266,7 +267,14 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
                 id: 'blockchain', label: 'Blockchain', type: 'select', required: true, default: 'bitcoin', options: [
                     { value: 'bitcoin', label: 'Bitcoin' },
                     { value: 'ethereum', label: 'Ethereum' },
-                    { value: 'litecoin', label: 'Litecoin' },
+                    { value: 'solana', label: 'Solana' },
+                    { value: 'bnb', label: 'BNB Chain' },
+                    { value: 'xrp', label: 'XRP' },
+                    { value: 'cardano', label: 'Cardano' },
+                    { value: 'dogecoin', label: 'Dogecoin' },
+                    { value: 'tron', label: 'Tron' },
+                    { value: 'avalanche', label: 'Avalanche' },
+                    { value: 'polygon', label: 'Polygon' },
                 ], description: 'Blockchain network'
             },
         ],
@@ -312,6 +320,14 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
                 id: 'blockchain', label: 'Blockchain', type: 'select', required: true, default: 'bitcoin', options: [
                     { value: 'bitcoin', label: 'Bitcoin' },
                     { value: 'ethereum', label: 'Ethereum' },
+                    { value: 'solana', label: 'Solana' },
+                    { value: 'bnb', label: 'BNB Chain' },
+                    { value: 'xrp', label: 'XRP' },
+                    { value: 'cardano', label: 'Cardano' },
+                    { value: 'dogecoin', label: 'Dogecoin' },
+                    { value: 'tron', label: 'Tron' },
+                    { value: 'avalanche', label: 'Avalanche' },
+                    { value: 'polygon', label: 'Polygon' },
                 ], description: 'Blockchain network'
             },
         ],
@@ -350,6 +366,52 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
                     { value: 'ethereum', label: 'Ethereum' },
                 ], description: 'Blockchain network'
             },
+        ],
+    },
+    {
+        type: 'batch_transaction',
+        category: NodeCategory.INPUT,
+        provider: APIProvider.NONE,
+
+        // Convenience properties
+        name: 'Batch Transaction Input',
+        icon: '📋',
+        color: '#1976d2',
+        description: 'Upload file with multiple transaction hashes for batch processing',
+        longDescription: 'Import multiple transaction hashes from CSV, Excel, PDF, or Word documents. Supports batch analysis of transactions.',
+
+        // Nested objects
+        visual: { icon: '📋', color: '#1976d2', width: 300, height: 220 },
+        documentation: {
+            name: 'Batch Transaction Input',
+            description: 'Upload file with multiple transaction hashes for batch processing',
+            longDescription: 'Import multiple transaction hashes from CSV, Excel, PDF, or Word documents. Supports batch analysis of transactions.',
+            usage: '1. Drag onto canvas\n2. Upload file\n3. Select format\n4. Specify column\n5. Connect to query nodes',
+            examples: ['CSV with Bitcoin transaction hashes', 'Excel spreadsheet with Ethereum tx hashes'],
+        },
+        inputs: [],
+        outputs: [
+            { id: 'tx_hashes', label: 'tx_hashes', type: DataType.TRANSACTION_LIST, description: 'Array of transaction hashes' },
+            { id: 'count', label: 'count', type: DataType.NUMBER, description: 'Number of transactions' },
+            { id: 'blockchain', label: 'blockchain', type: DataType.STRING, description: 'Blockchain identifier' },
+        ],
+        configuration: [
+            { id: 'file', label: 'File', type: 'file', required: true, description: 'Upload file containing transaction hashes' },
+            {
+                id: 'format', label: 'Format', type: 'select', required: true, options: [
+                    { value: 'csv', label: 'CSV' },
+                    { value: 'excel', label: 'Excel' },
+                    { value: 'pdf', label: 'PDF' },
+                    { value: 'word', label: 'Word' },
+                ], description: 'File format'
+            },
+            {
+                id: 'blockchain', label: 'Blockchain', type: 'select', required: true, default: 'bitcoin', options: [
+                    { value: 'bitcoin', label: 'Bitcoin' },
+                    { value: 'ethereum', label: 'Ethereum' },
+                ], description: 'Blockchain network'
+            },
+            { id: 'column', label: 'Column Name/Index', type: 'string', required: false, default: '0', placeholder: 'Column name or index (0-based)', description: 'Column containing transaction hashes' },
         ],
     },
 
@@ -480,6 +542,18 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
                     { value: 'ethereum', label: 'Ethereum' },
                 ], description: 'Cryptocurrency asset'
             },
+            {
+                id: 'direction', label: 'Direction', type: 'select', required: true, default: 'sent', options: [
+                    { value: 'sent', label: 'Sent (Outgoing)' },
+                    { value: 'received', label: 'Received (Incoming)' },
+                ], description: 'Transaction direction to analyze'
+            },
+            {
+                id: 'output_asset', label: 'Output Asset', type: 'select', required: false, default: 'NATIVE', options: [
+                    { value: 'NATIVE', label: 'Native Currency' },
+                    { value: 'USD', label: 'USD' },
+                ], description: 'Output currency for values'
+            },
         ],
     },
     {
@@ -508,8 +582,12 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
             { id: 'tx_hash', label: 'tx_hash', type: DataType.TRANSACTION, required: true, description: 'Transaction hash' },
         ],
         outputs: [
-            { id: 'tx_details', label: 'tx_details', type: DataType.JSON_DATA, description: 'Transaction details' },
+            { id: 'transaction_details', label: 'transaction_details', type: DataType.JSON_DATA, description: 'Transaction details' },
             { id: 'tx_hash', label: 'tx_hash', type: DataType.TRANSACTION, description: 'Original hash' },
+            { id: 'inputs', label: 'inputs', type: DataType.JSON_DATA, description: 'Transaction inputs' },
+            { id: 'outputs', label: 'outputs', type: DataType.JSON_DATA, description: 'Transaction outputs' },
+            { id: 'fee', label: 'fee', type: DataType.NUMBER, description: 'Transaction fee' },
+            { id: 'block_height', label: 'block_height', type: DataType.NUMBER, description: 'Block height' },
         ],
         configuration: [
             {
@@ -517,6 +595,12 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
                     { value: 'bitcoin', label: 'Bitcoin' },
                     { value: 'ethereum', label: 'Ethereum' },
                 ], description: 'Cryptocurrency asset'
+            },
+            {
+                id: 'output_asset', label: 'Output Asset', type: 'select', required: false, default: 'NATIVE', options: [
+                    { value: 'NATIVE', label: 'Native Currency' },
+                    { value: 'USD', label: 'USD' },
+                ], description: 'Output currency for values'
             },
         ],
     },
@@ -565,6 +649,12 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
                     { value: 'received', label: 'Received (Incoming)' },
                 ], description: 'Direction to analyze'
             },
+            {
+                id: 'output_asset', label: 'Output Asset', type: 'select', required: false, default: 'USD', options: [
+                    { value: 'NATIVE', label: 'Native Currency' },
+                    { value: 'USD', label: 'USD' },
+                ], description: 'Output currency for exposure values'
+            },
         ],
     },
     {
@@ -593,7 +683,9 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
             { id: 'address', label: 'address', type: DataType.ADDRESS, required: true, description: 'Address to query' },
         ],
         outputs: [
-            { id: 'services_exposure', label: 'services_exposure', type: DataType.JSON_DATA, description: 'Service exposure data' },
+            { id: 'direct_exposure', label: 'direct_exposure', type: DataType.JSON_DATA, description: 'Direct service exposure' },
+            { id: 'indirect_exposure', label: 'indirect_exposure', type: DataType.JSON_DATA, description: 'Indirect service exposure' },
+            { id: 'service_count', label: 'service_count', type: DataType.NUMBER, description: 'Total service count' },
             { id: 'address', label: 'address', type: DataType.ADDRESS, description: 'Original address' },
         ],
         configuration: [
@@ -602,6 +694,18 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
                     { value: 'bitcoin', label: 'Bitcoin' },
                     { value: 'ethereum', label: 'Ethereum' },
                 ], description: 'Cryptocurrency asset'
+            },
+            {
+                id: 'direction', label: 'Direction', type: 'select', required: true, default: 'sent', options: [
+                    { value: 'sent', label: 'Sent (Outgoing)' },
+                    { value: 'received', label: 'Received (Incoming)' },
+                ], description: 'Direction to analyze'
+            },
+            {
+                id: 'output_asset', label: 'Output Asset', type: 'select', required: false, default: 'USD', options: [
+                    { value: 'NATIVE', label: 'Native Currency' },
+                    { value: 'USD', label: 'USD' },
+                ], description: 'Output currency for exposure values'
             },
         ],
     },
@@ -787,6 +891,35 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
     // OUTPUT NODES (5)
     // =========================================================================
     {
+        type: 'output_path',
+        category: NodeCategory.OUTPUT,
+        provider: APIProvider.NONE,
+
+        // Convenience properties
+        name: 'Output Path',
+        icon: '📂',
+        color: '#f57c00',
+        description: 'Select output file location for exports',
+        longDescription: 'Select the destination folder and filename. Connect export nodes file_path output here.',
+
+        // Nested objects
+        visual: { icon: '📂', color: '#f57c00', width: 280, height: 180 },
+        documentation: {
+            name: 'Output Path',
+            description: 'Select output file location for exports',
+            longDescription: 'Select the destination folder and filename. Connect export nodes file_path output here.',
+            usage: '1. Drag onto canvas\n2. Click to select save location\n3. Connect export node file_path output here',
+            examples: ['Save CSV to Desktop', 'Export to Documents folder'],
+        },
+        inputs: [
+            { id: 'file_path_input', label: 'file_path_input', type: DataType.STRING, required: true, description: 'File path from export node' },
+        ],
+        outputs: [],
+        configuration: [
+            { id: 'output_path', label: 'Output Path', type: 'filepath', required: true, default: 'output.csv', description: 'Click to select output file location' },
+        ],
+    },
+    {
         type: 'txt_export',
         category: NodeCategory.OUTPUT,
         provider: APIProvider.NONE,
@@ -796,26 +929,24 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
         icon: '📄',
         color: '#f57c00',
         description: 'Export results to text file',
-        longDescription: 'Exports connected data to a plain text file.',
+        longDescription: 'Exports connected data to a plain text file. Connect file_path output to Output Path node.',
 
         // Nested objects
-        visual: { icon: '📄', color: '#f57c00', width: 260, height: 150 },
+        visual: { icon: '📄', color: '#f57c00', width: 260, height: 140 },
         documentation: {
             name: 'TXT Export',
             description: 'Export results to text file',
-            longDescription: 'Exports connected data to a plain text file.',
-            usage: 'Connect data → Configure filename → Execute → Download',
+            longDescription: 'Exports connected data to a plain text file. Connect file_path output to Output Path node.',
+            usage: 'Connect data input → Connect file_path output to Output Path node',
             examples: ['Export address list to text'],
         },
         inputs: [
             { id: 'data', label: 'data', type: DataType.ANY, required: true, description: 'Data to export' },
         ],
         outputs: [
-            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Path to exported file' },
+            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Connect to Output Path node' },
         ],
-        configuration: [
-            { id: 'filename', label: 'Filename', type: 'string', required: true, default: 'export.txt', description: 'Output filename' },
-        ],
+        configuration: [],
     },
     {
         type: 'excel_export',
@@ -827,25 +958,24 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
         icon: '📊',
         color: '#f57c00',
         description: 'Export results to Excel spreadsheet',
-        longDescription: 'Exports connected data to formatted Excel file with multiple sheets.',
+        longDescription: 'Exports connected data to formatted Excel file. Connect file_path output to Output Path node.',
 
         // Nested objects
-        visual: { icon: '📊', color: '#f57c00', width: 280, height: 180 },
+        visual: { icon: '📊', color: '#f57c00', width: 280, height: 160 },
         documentation: {
             name: 'Excel Export',
             description: 'Export results to Excel spreadsheet',
-            longDescription: 'Exports connected data to formatted Excel file with multiple sheets.',
-            usage: 'Connect data → Configure → Execute → Download',
+            longDescription: 'Exports connected data to formatted Excel file. Connect file_path output to Output Path node.',
+            usage: 'Connect data input → Connect file_path output to Output Path node',
             examples: ['Export investigation results to Excel'],
         },
         inputs: [
             { id: 'data', label: 'data', type: DataType.ANY, required: true, description: 'Data to export' },
         ],
         outputs: [
-            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Path to exported file' },
+            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Connect to Output Path node' },
         ],
         configuration: [
-            { id: 'filename', label: 'Filename', type: 'string', required: true, default: 'export.xlsx', description: 'Output filename' },
             { id: 'sheet_name', label: 'Sheet Name', type: 'string', required: false, default: 'Results', description: 'Excel sheet name' },
         ],
     },
@@ -859,25 +989,24 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
         icon: '{ }',
         color: '#f57c00',
         description: 'Export results to JSON file',
-        longDescription: 'Exports connected data to JSON format.',
+        longDescription: 'Exports connected data to JSON format. Connect file_path output to Output Path node.',
 
         // Nested objects
-        visual: { icon: '{ }', color: '#f57c00', width: 260, height: 150 },
+        visual: { icon: '{ }', color: '#f57c00', width: 260, height: 160 },
         documentation: {
             name: 'JSON Export',
             description: 'Export results to JSON file',
-            longDescription: 'Exports connected data to JSON format.',
-            usage: 'Connect data → Configure → Execute → Download',
+            longDescription: 'Exports connected data to JSON format. Connect file_path output to Output Path node.',
+            usage: 'Connect data input → Connect file_path output to Output Path node',
             examples: ['Export structured data to JSON'],
         },
         inputs: [
             { id: 'data', label: 'data', type: DataType.ANY, required: true, description: 'Data to export' },
         ],
         outputs: [
-            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Path to exported file' },
+            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Connect to Output Path node' },
         ],
         configuration: [
-            { id: 'filename', label: 'Filename', type: 'string', required: true, default: 'export.json', description: 'Output filename' },
             { id: 'pretty_print', label: 'Pretty Print', type: 'boolean', required: false, default: true, description: 'Format with indentation' },
         ],
     },
@@ -891,25 +1020,69 @@ export const NODE_TYPES: NodeTypeDefinition[] = [
         icon: '📋',
         color: '#f57c00',
         description: 'Export results to CSV file',
-        longDescription: 'Exports connected data to CSV format for spreadsheet import.',
+        longDescription: 'Exports connected data to CSV format. Connect file_path output to Output Path node.',
 
         // Nested objects
-        visual: { icon: '📋', color: '#f57c00', width: 260, height: 150 },
+        visual: { icon: '📋', color: '#f57c00', width: 260, height: 140 },
         documentation: {
             name: 'CSV Export',
             description: 'Export results to CSV file',
-            longDescription: 'Exports connected data to CSV format for spreadsheet import.',
-            usage: 'Connect data → Configure → Execute → Download',
+            longDescription: 'Exports connected data to CSV format. Connect file_path output to Output Path node.',
+            usage: 'Connect data input → Connect file_path output to Output Path node',
             examples: ['Export address data to CSV'],
         },
         inputs: [
             { id: 'data', label: 'data', type: DataType.ANY, required: true, description: 'Data to export' },
         ],
         outputs: [
-            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Path to exported file' },
+            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Connect to Output Path node' },
+        ],
+        configuration: [],
+    },
+    {
+        type: 'pdf_export',
+        category: NodeCategory.OUTPUT,
+        provider: APIProvider.NONE,
+
+        // Convenience properties
+        name: 'PDF Report',
+        icon: '📑',
+        color: '#f57c00',
+        description: 'Generate professional PDF report with graphs',
+        longDescription: 'Creates a professional PDF report with EasyCall branding, data visualization graphs, and formatted tables. Connect file_path output to Output Path node.',
+
+        // Nested objects
+        visual: { icon: '📑', color: '#f57c00', width: 280, height: 180 },
+        documentation: {
+            name: 'PDF Report',
+            description: 'Generate professional PDF report with graphs',
+            longDescription: 'Creates a professional PDF report with EasyCall branding, data visualization graphs, and formatted tables. Includes executive summary and risk analysis.',
+            usage: 'Connect data input → Configure report options → Connect file_path output to Output Path node',
+            examples: ['Generate investigation report', 'Create compliance audit PDF'],
+        },
+        inputs: [
+            { id: 'data', label: 'data', type: DataType.ANY, required: true, description: 'Data to include in report' },
+        ],
+        outputs: [
+            { id: 'file_path', label: 'file_path', type: DataType.STRING, description: 'Connect to Output Path node' },
         ],
         configuration: [
-            { id: 'filename', label: 'Filename', type: 'string', required: true, default: 'export.csv', description: 'Output filename' },
+            { id: 'report_title', label: 'Report Title', type: 'string', required: false, default: 'Blockchain Intelligence Report', placeholder: 'Enter report title', description: 'Title displayed on report cover' },
+            {
+                id: 'render_engine', label: 'Render Engine', type: 'select', required: false, default: 'template', options: [
+                    { value: 'template', label: 'HTML/CSS Template (Recommended)' },
+                    { value: 'reportlab', label: 'ReportLab (Classic)' },
+                ], description: 'PDF generation method - Template offers more styling control'
+            },
+            { id: 'include_graphs', label: 'Include Graphs', type: 'boolean', required: false, default: true, description: 'Generate data visualization charts (ReportLab only)' },
+            {
+                id: 'graph_type', label: 'Graph Type', type: 'select', required: false, default: 'auto', options: [
+                    { value: 'auto', label: 'Auto-detect' },
+                    { value: 'bar', label: 'Bar Chart' },
+                    { value: 'pie', label: 'Pie Chart' },
+                    { value: 'line', label: 'Line Chart' },
+                ], description: 'Type of chart to generate (ReportLab only)'
+            },
         ],
     },
     {

@@ -1,0 +1,93 @@
+<!-- TRM Labs Address Attribution Section -->
+{% if data %}
+<div class="section-content">
+    {% if data.entities and data.entities|length > 0 %}
+    {% for entity in data.entities %}
+    <div class="entity-card">
+        <div class="entity-header">
+            <div>
+                <div class="entity-name">{{ entity.name|default:"Unknown Entity" }}</div>
+                <div class="entity-category">{{ entity.category|default:"Unattributed" }}</div>
+            </div>
+            {% if entity.risk_score %}
+            <span class="risk-badge risk-{% if entity.risk_score >= 70 %}high{% elif entity.risk_score >= 40 %}medium{% else %}low{% endif %}">
+                Risk: {{ entity.risk_score }}
+            </span>
+            {% endif %}
+        </div>
+
+        <div class="kv-grid">
+            {% if entity.address %}
+            <div class="kv-item">
+                <div class="kv-label">Address</div>
+                <div class="kv-value text-mono">{{ entity.address }}</div>
+            </div>
+            {% endif %}
+            {% if entity.chain %}
+            <div class="kv-item">
+                <div class="kv-label">Blockchain</div>
+                <div class="kv-value">{{ entity.chain }}</div>
+            </div>
+            {% endif %}
+            {% if entity.cluster_size %}
+            <div class="kv-item">
+                <div class="kv-label">Cluster Size</div>
+                <div class="kv-value">{{ entity.cluster_size }} addresses</div>
+            </div>
+            {% endif %}
+            {% if entity.tags %}
+            <div class="kv-item">
+                <div class="kv-label">Tags</div>
+                <div class="kv-value">
+                    {% for tag in entity.tags %}
+                    <span class="risk-badge risk-unknown">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <!-- Single attribution -->
+    <div class="entity-card">
+        <div class="entity-header">
+            <div>
+                <div class="entity-name">{{ data.entity_name|default:"Unknown Entity" }}</div>
+                <div class="entity-category">{{ data.category|default:"Unattributed" }}</div>
+            </div>
+            {% if data.risk_score %}
+            <span class="risk-badge risk-{% if data.risk_score >= 70 %}high{% elif data.risk_score >= 40 %}medium{% else %}low{% endif %}">
+                Risk: {{ data.risk_score }}
+            </span>
+            {% endif %}
+        </div>
+
+        <div class="kv-grid">
+            {% if data.address %}
+            <div class="kv-item">
+                <div class="kv-label">Address</div>
+                <div class="kv-value text-mono">{{ data.address }}</div>
+            </div>
+            {% endif %}
+            {% if data.chain %}
+            <div class="kv-item">
+                <div class="kv-label">Blockchain</div>
+                <div class="kv-value">{{ data.chain }}</div>
+            </div>
+            {% endif %}
+            {% for key, value in data.items %}
+            {% if key not in 'address,chain,entity_name,category,risk_score,entities' %}
+            <div class="kv-item">
+                <div class="kv-label">{{ key|title }}</div>
+                <div class="kv-value">{{ value }}</div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<p class="text-muted">No attribution data available.</p>
+{% endif %}

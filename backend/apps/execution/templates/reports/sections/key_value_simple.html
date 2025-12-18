@@ -1,0 +1,29 @@
+<!-- Key-Value Display Section (xhtml2pdf compatible) -->
+{% if data %}
+<table class="kv-table" width="100%">
+    {% for key, value in data.items %}
+    <tr>
+        <td width="30%">
+            <div class="kv-label">{{ key|title }}</div>
+        </td>
+        <td width="70%">
+            <div class="kv-value">
+                {% if value is None %}
+                <span class="text-muted">N/A</span>
+                {% elif value == True %}
+                <span class="text-success">Yes</span>
+                {% elif value == False %}
+                <span class="text-danger">No</span>
+                {% else %}
+                {{ value }}
+                {% endif %}
+            </div>
+        </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="2" class="text-muted">No data available.</td></tr>
+    {% endfor %}
+</table>
+{% else %}
+<p class="text-muted">No data available.</p>
+{% endif %}

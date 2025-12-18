@@ -279,3 +279,18 @@ secrets.json
 # Database backups
 *.sql
 *.dump
+
+
+# Local AI tooling
+.claude/
+
+# Generated outputs / test artefacts
+backend/outputs/
+*.pdf
+*.docx
+
+# Windows reserved filename accidentally created
+nul
+
+# Root lockfile (keep the one in /frontend instead)
+package-lock.json

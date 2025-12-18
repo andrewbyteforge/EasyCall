@@ -34,6 +34,14 @@ python-docx>=1.1,<2.0           # Word documents (.docx)
 xlrd>=2.0,<3.0                  # Legacy Excel files (.xls)
 
 # -----------------------------------------------------------------------------
+# PDF Report Generation
+# -----------------------------------------------------------------------------
+weasyprint>=60.0,<62.0          # HTML/CSS to PDF (Template-based reports) - requires GTK on Windows
+xhtml2pdf>=0.2.11,<1.0          # HTML to PDF fallback (pure Python, no GTK needed)
+reportlab>=4.0,<5.0             # Programmatic PDF generation (Classic reports)
+matplotlib>=3.8,<4.0            # Charts and graphs for PDF reports
+
+# -----------------------------------------------------------------------------
 # API Clients
 # -----------------------------------------------------------------------------
 requests>=2.31,<3.0             # HTTP requests to external APIs

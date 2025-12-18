@@ -1,0 +1,36 @@
+<!-- TRM Attribution Section (xhtml2pdf compatible) -->
+{% if data.entities %}
+{% for entity in data.entities %}
+<div class="entity-card">
+    <div class="entity-name">{{ entity.name|default:entity.entity_name|default:"Unknown Entity" }}</div>
+    <table class="kv-table" width="100%">
+        {% if entity.category %}
+        <tr>
+            <td width="30%"><div class="kv-label">Category</div></td>
+            <td width="70%"><div class="kv-value">{{ entity.category }}</div></td>
+        </tr>
+        {% endif %}
+        {% if entity.risk_score %}
+        <tr>
+            <td width="30%"><div class="kv-label">Risk Score</div></td>
+            <td width="70%">
+                <div class="kv-value {% if entity.risk_score > 70 %}risk-high{% elif entity.risk_score > 40 %}risk-medium{% else %}risk-low{% endif %}">
+                    {{ entity.risk_score }}
+                </div>
+            </td>
+        </tr>
+        {% endif %}
+        {% if entity.confidence %}
+        <tr>
+            <td width="30%"><div class="kv-label">Confidence</div></td>
+            <td width="70%"><div class="kv-value">{{ entity.confidence }}%</div></td>
+        </tr>
+        {% endif %}
+    </table>
+</div>
+{% endfor %}
+{% elif data %}
+{% include 'reports/sections/generic_data_simple.html' with data=data %}
+{% else %}
+<p class="text-muted">No attribution data available.</p>
+{% endif %}

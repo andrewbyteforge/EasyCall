@@ -1,0 +1,68 @@
+<!-- Chainalysis Cluster Balance Section -->
+{% if data %}
+<div class="section-content">
+    {% if data.balance_data and data.balance_data|length > 0 %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Asset</th>
+                <th>Balance</th>
+                <th>Received</th>
+                <th>Sent</th>
+                <th>Transactions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for balance in data.balance_data %}
+            <tr>
+                <td><strong>{{ balance.asset|default:"Unknown" }}</strong></td>
+                <td>{{ balance.balance|floatformat:8 }}</td>
+                <td class="text-success">{{ balance.total_received|floatformat:8 }}</td>
+                <td class="text-danger">{{ balance.total_sent|floatformat:8 }}</td>
+                <td>{{ balance.transaction_count|default:"N/A" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <!-- Single balance display -->
+    <div class="summary-grid">
+        {% if data.balance %}
+        <div class="summary-card">
+            <div class="summary-card-value">{{ data.balance|floatformat:8 }}</div>
+            <div class="summary-card-label">Current Balance</div>
+        </div>
+        {% endif %}
+        {% if data.total_received %}
+        <div class="summary-card">
+            <div class="summary-card-value text-success">{{ data.total_received|floatformat:8 }}</div>
+            <div class="summary-card-label">Total Received</div>
+        </div>
+        {% endif %}
+        {% if data.total_sent %}
+        <div class="summary-card">
+            <div class="summary-card-value text-danger">{{ data.total_sent|floatformat:8 }}</div>
+            <div class="summary-card-label">Total Sent</div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if data.address %}
+    <div class="kv-grid mt-20">
+        <div class="kv-item">
+            <div class="kv-label">Address</div>
+            <div class="kv-value text-mono">{{ data.address }}</div>
+        </div>
+        {% if data.asset %}
+        <div class="kv-item">
+            <div class="kv-label">Asset</div>
+            <div class="kv-value">{{ data.asset }}</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% else %}
+<p class="text-muted">No balance information available.</p>
+{% endif %}

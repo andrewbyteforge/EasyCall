@@ -1,0 +1,104 @@
+<!-- TRM Labs Exposure Section -->
+{% if data %}
+<div class="section-content">
+    <!-- Risk Summary -->
+    {% if data.risk_score or data.total_exposure %}
+    <div class="executive-summary">
+        <div class="summary-grid">
+            {% if data.risk_score %}
+            <div class="summary-card">
+                <div class="summary-card-value {% if data.risk_score >= 70 %}text-danger{% elif data.risk_score >= 40 %}text-warning{% else %}text-success{% endif %}">
+                    {{ data.risk_score }}
+                </div>
+                <div class="summary-card-label">Risk Score</div>
+            </div>
+            {% endif %}
+            {% if data.total_exposure %}
+            <div class="summary-card">
+                <div class="summary-card-value">${{ data.total_exposure|floatformat:2 }}</div>
+                <div class="summary-card-label">Total Exposure</div>
+            </div>
+            {% endif %}
+            {% if data.risk_indicators %}
+            <div class="summary-card">
+                <div class="summary-card-value text-danger">{{ data.risk_indicators|length }}</div>
+                <div class="summary-card-label">Risk Indicators</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Risk Indicators -->
+    {% if data.risk_indicators and data.risk_indicators|length > 0 %}
+    <h3 class="section-subtitle">Risk Indicators</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Indicator</th>
+                <th>Category</th>
+                <th>Severity</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for indicator in data.risk_indicators %}
+            <tr>
+                <td><strong>{{ indicator.name|default:indicator.type|default:"Unknown" }}</strong></td>
+                <td>{{ indicator.category|default:"N/A" }}</td>
+                <td>
+                    <span class="risk-badge risk-{{ indicator.severity|lower|default:'unknown' }}">
+                        {{ indicator.severity|default:"Unknown" }}
+                    </span>
+                </td>
+                <td>{{ indicator.description|default:indicator.details|default:"N/A" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Exposure Breakdown -->
+    {% if data.exposure_breakdown and data.exposure_breakdown|length > 0 %}
+    <h3 class="section-subtitle mt-20">Exposure Breakdown</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Entity Type</th>
+                <th>Sent</th>
+                <th>Received</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exp in data.exposure_breakdown %}
+            <tr>
+                <td><strong>{{ exp.entity_type|default:"Unknown" }}</strong></td>
+                <td class="text-danger">${{ exp.sent|floatformat:2|default:"0.00" }}</td>
+                <td class="text-success">${{ exp.received|floatformat:2|default:"0.00" }}</td>
+                <td>${{ exp.total|floatformat:2|default:"0.00" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Address Info -->
+    {% if data.address %}
+    <div class="kv-grid mt-20">
+        <div class="kv-item">
+            <div class="kv-label">Analyzed Address</div>
+            <div class="kv-value text-mono">{{ data.address }}</div>
+        </div>
+        {% if data.chain %}
+        <div class="kv-item">
+            <div class="kv-label">Blockchain</div>
+            <div class="kv-value">{{ data.chain }}</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<p class="text-muted">No TRM exposure data available.</p>
+{% endif %}

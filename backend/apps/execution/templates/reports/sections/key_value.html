@@ -1,0 +1,29 @@
+<!-- Key-Value Display Section -->
+{% if data %}
+<div class="section-content">
+    <div class="kv-grid">
+        {% for key, value in data.items %}
+        <div class="kv-item">
+            <div class="kv-label">{{ key|title }}</div>
+            <div class="kv-value">
+                {% if value|length > 64 %}
+                <span class="text-mono" style="font-size: 9pt;">{{ value }}</span>
+                {% elif value == True %}
+                <span class="text-success">Yes</span>
+                {% elif value == False %}
+                <span class="text-danger">No</span>
+                {% elif value is None %}
+                <span class="text-muted">N/A</span>
+                {% else %}
+                {{ value }}
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted">No data available.</p>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<p class="text-muted">No data available.</p>
+{% endif %}

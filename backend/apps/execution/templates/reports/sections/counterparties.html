@@ -1,0 +1,80 @@
+<!-- Chainalysis Counterparties Section -->
+{% if data %}
+<div class="section-content">
+    {% if data.counterparties and data.counterparties|length > 0 %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Counterparty</th>
+                <th>Category</th>
+                <th>Transactions</th>
+                <th>Total Value</th>
+                <th>Direction</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cp in data.counterparties %}
+            <tr>
+                <td>
+                    <strong>{{ cp.name|default:"Unknown" }}</strong>
+                    {% if cp.address %}
+                    <br><span class="text-mono text-muted">{{ cp.address|truncatechars:20 }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if cp.category %}
+                    <span class="risk-badge risk-{% if cp.category == 'Sanctions' or cp.category == 'Darknet Market' %}high{% elif cp.category == 'Exchange' or cp.category == 'DeFi' %}low{% else %}medium{% endif %}">
+                        {{ cp.category }}
+                    </span>
+                    {% else %}
+                    <span class="text-muted">Unknown</span>
+                    {% endif %}
+                </td>
+                <td>{{ cp.transaction_count|default:"N/A" }}</td>
+                <td>{{ cp.total_value|floatformat:4|default:"N/A" }}</td>
+                <td>
+                    {% if cp.direction == 'sent' %}
+                    <span class="text-danger">↑ Sent</span>
+                    {% elif cp.direction == 'received' %}
+                    <span class="text-success">↓ Received</span>
+                    {% else %}
+                    {{ cp.direction|default:"Both" }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if data.summary %}
+    <div class="executive-summary mt-20">
+        <h3 class="section-subtitle">Counterparty Summary</h3>
+        <div class="summary-grid">
+            {% if data.summary.total_counterparties %}
+            <div class="summary-card">
+                <div class="summary-card-value">{{ data.summary.total_counterparties }}</div>
+                <div class="summary-card-label">Total Counterparties</div>
+            </div>
+            {% endif %}
+            {% if data.summary.high_risk_count %}
+            <div class="summary-card">
+                <div class="summary-card-value text-danger">{{ data.summary.high_risk_count }}</div>
+                <div class="summary-card-label">High Risk</div>
+            </div>
+            {% endif %}
+            {% if data.summary.exchange_count %}
+            <div class="summary-card">
+                <div class="summary-card-value">{{ data.summary.exchange_count }}</div>
+                <div class="summary-card-label">Exchanges</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="text-muted">No counterparty data available.</p>
+    {% endif %}
+</div>
+{% else %}
+<p class="text-muted">No counterparty information available.</p>
+{% endif %}

@@ -1,0 +1,85 @@
+<!-- Generic Data Section - Fallback for any data type -->
+{% if data %}
+<div class="section-content">
+    {% if data.items %}
+    <!-- Dictionary data -->
+    <div class="kv-grid">
+        {% for key, value in data.items %}
+        <div class="kv-item">
+            <div class="kv-label">{{ key|title }}</div>
+            <div class="kv-value">
+                {% if value is iterable and value is not string %}
+                    {% if value.items %}
+                    <!-- Nested dict -->
+                    <div style="font-size: 10pt;">
+                        {% for k, v in value.items %}
+                        <div><strong>{{ k }}:</strong> {{ v }}</div>
+                        {% endfor %}
+                    </div>
+                    {% elif value|length > 0 %}
+                    <!-- List -->
+                    <ul style="margin: 0; padding-left: 20px; font-size: 10pt;">
+                        {% for item in value %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <span class="text-muted">Empty</span>
+                    {% endif %}
+                {% elif value|length > 100 %}
+                <span class="text-mono" style="font-size: 9pt; word-break: break-all;">{{ value }}</span>
+                {% elif value == True %}
+                <span class="text-success">Yes</span>
+                {% elif value == False %}
+                <span class="text-danger">No</span>
+                {% elif value is None %}
+                <span class="text-muted">N/A</span>
+                {% else %}
+                {{ value }}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% elif data is iterable and data is not string %}
+    <!-- List data -->
+    {% if data|length > 0 %}
+        {% if data.0.items %}
+        <!-- List of dicts - render as table -->
+        <table class="data-table">
+            <thead>
+                <tr>
+                    {% for key in data.0.keys %}
+                    <th>{{ key|title }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    {% for key, value in row.items %}
+                    <td>{{ value|default:"N/A" }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <!-- Simple list -->
+        <ul style="margin: 0; padding-left: 20px;">
+            {% for item in data %}
+            <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    {% else %}
+    <p class="text-muted">Empty list.</p>
+    {% endif %}
+    {% else %}
+    <!-- Simple value -->
+    <p>{{ data }}</p>
+    {% endif %}
+</div>
+{% else %}
+<p class="text-muted">No data available.</p>
+{% endif %}

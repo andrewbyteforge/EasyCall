@@ -1,0 +1,49 @@
+<!-- TRM Exposure Section (xhtml2pdf compatible) -->
+{% if data.risk_score is not None or data.risk_indicators %}
+<table class="kv-table" width="100%">
+    {% if data.risk_score is not None %}
+    <tr>
+        <td width="30%"><div class="kv-label">Risk Score</div></td>
+        <td width="70%">
+            <div class="kv-value {% if data.risk_score > 70 %}risk-high{% elif data.risk_score > 40 %}risk-medium{% else %}risk-low{% endif %}">
+                {{ data.risk_score }}/100
+            </div>
+        </td>
+    </tr>
+    {% endif %}
+    {% if data.risk_category %}
+    <tr>
+        <td width="30%"><div class="kv-label">Risk Category</div></td>
+        <td width="70%"><div class="kv-value">{{ data.risk_category }}</div></td>
+    </tr>
+    {% endif %}
+</table>
+
+{% if data.risk_indicators %}
+<h3 style="font-size: 12pt; margin: 20px 0 10px 0;">Risk Indicators</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Indicator</th>
+            <th>Category</th>
+            <th>Severity</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for indicator in data.risk_indicators %}
+        <tr>
+            <td>{{ indicator.name|default:indicator.indicator|default:"Unknown" }}</td>
+            <td>{{ indicator.category|default:"N/A" }}</td>
+            <td class="{% if indicator.severity == 'HIGH' %}risk-high{% elif indicator.severity == 'MEDIUM' %}risk-medium{% else %}risk-low{% endif %}">
+                {{ indicator.severity|default:"N/A" }}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% elif data %}
+{% include 'reports/sections/generic_data_simple.html' with data=data %}
+{% else %}
+<p class="text-muted">No exposure data available.</p>
+{% endif %}

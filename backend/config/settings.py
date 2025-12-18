@@ -250,13 +250,36 @@ CORS_ALLOWED_ORIGINS: list[str] = [
     origin.strip()
     for origin in os.getenv(
         "CORS_ALLOWED_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173"
+        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"
     ).split(",")
     if origin.strip()
 ]
 
 # Allow credentials (cookies, etc.)
 CORS_ALLOW_CREDENTIALS: bool = True
+
+# Allow all headers (needed for Content-Type etc.)
+CORS_ALLOW_HEADERS: list[str] = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+# Allow all common HTTP methods
+CORS_ALLOW_METHODS: list[str] = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
 
 # =============================================================================
 # CHANNELS (WEBSOCKET) CONFIGURATION
@@ -385,9 +408,10 @@ RATE_LIMITS: dict = {
 # =============================================================================
 
 # Chainalysis Reactor API settings
+# NOTE: IAPI = Investigations API (https://iapi.chainalysis.com)
 CHAINALYSIS_CONFIG: dict = {
     "api_key": os.getenv("CHAINALYSIS_API_KEY", ""),
-    "api_url": os.getenv("CHAINALYSIS_API_URL", "https://api.chainalysis.com"),
+    "api_url": os.getenv("CHAINALYSIS_API_URL", "https://iapi.chainalysis.com"),
     "timeout": 30,
     "retry_attempts": 3,
     "retry_delay": 1,

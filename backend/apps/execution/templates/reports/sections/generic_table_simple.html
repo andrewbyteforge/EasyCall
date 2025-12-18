@@ -1,0 +1,45 @@
+<!-- Generic Table Section (xhtml2pdf compatible) -->
+{% if data %}
+{% if data.0.items %}
+<!-- List of dictionaries -->
+<table class="data-table">
+    <thead>
+        <tr>
+            {% if columns %}
+                {% for col in columns %}
+                <th>{{ col.label|default:col.key|title }}</th>
+                {% endfor %}
+            {% else %}
+                {% for key in data.0.keys %}
+                <th>{{ key|title }}</th>
+                {% endfor %}
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in data %}
+        <tr>
+            {% if columns %}
+                {% for col in columns %}
+                <td>{{ row|get_item:col.key|default:"N/A" }}</td>
+                {% endfor %}
+            {% else %}
+                {% for key, value in row.items %}
+                <td>{{ value|default:"N/A" }}</td>
+                {% endfor %}
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<!-- Simple list -->
+<ul>
+    {% for item in data %}
+    <li>{{ item }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% else %}
+<p class="text-muted">No table data available.</p>
+{% endif %}

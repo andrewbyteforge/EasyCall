@@ -1,0 +1,125 @@
+<!-- Chainalysis Exposure Section (Category & Service) -->
+{% if data %}
+<div class="section-content">
+    <!-- Direct Exposure -->
+    {% if data.direct_exposure %}
+    <h3 class="section-subtitle">Direct Exposure</h3>
+    {% if data.direct_exposure|length > 0 %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Category / Service</th>
+                <th>Exposure (USD)</th>
+                <th>Percentage</th>
+                <th>Risk Level</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exp in data.direct_exposure %}
+            <tr>
+                <td><strong>{{ exp.category|default:exp.service|default:"Unknown" }}</strong></td>
+                <td>${{ exp.value|floatformat:2|default:"0.00" }}</td>
+                <td>
+                    {% if exp.percentage %}
+                    <div class="exposure-bar" style="width: 150px;">
+                        <div class="exposure-fill" style="width: {{ exp.percentage }}%;">
+                            {{ exp.percentage|floatformat:1 }}%
+                        </div>
+                    </div>
+                    {% else %}
+                    N/A
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="risk-badge risk-{% if exp.risk == 'high' or exp.category == 'Sanctions' or exp.category == 'Darknet Market' %}high{% elif exp.risk == 'low' or exp.category == 'Exchange' %}low{% else %}medium{% endif %}">
+                        {{ exp.risk|default:exp.category|default:"Unknown" }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No direct exposure detected.</p>
+    {% endif %}
+    {% endif %}
+
+    <!-- Indirect Exposure -->
+    {% if data.indirect_exposure %}
+    <h3 class="section-subtitle mt-20">Indirect Exposure</h3>
+    {% if data.indirect_exposure|length > 0 %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Category / Service</th>
+                <th>Exposure (USD)</th>
+                <th>Hops</th>
+                <th>Risk Level</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exp in data.indirect_exposure %}
+            <tr>
+                <td><strong>{{ exp.category|default:exp.service|default:"Unknown" }}</strong></td>
+                <td>${{ exp.value|floatformat:2|default:"0.00" }}</td>
+                <td>{{ exp.hops|default:"N/A" }}</td>
+                <td>
+                    <span class="risk-badge risk-{% if exp.risk == 'high' %}high{% elif exp.risk == 'low' %}low{% else %}medium{% endif %}">
+                        {{ exp.risk|default:"Unknown" }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No indirect exposure detected.</p>
+    {% endif %}
+    {% endif %}
+
+    <!-- Summary Stats -->
+    {% if data.total_exposure or data.category_count or data.service_count %}
+    <div class="executive-summary mt-20">
+        <h3 class="section-subtitle">Exposure Summary</h3>
+        <div class="summary-grid">
+            {% if data.total_exposure %}
+            <div class="summary-card">
+                <div class="summary-card-value">${{ data.total_exposure|floatformat:2 }}</div>
+                <div class="summary-card-label">Total Exposure</div>
+            </div>
+            {% endif %}
+            {% if data.category_count %}
+            <div class="summary-card">
+                <div class="summary-card-value">{{ data.category_count }}</div>
+                <div class="summary-card-label">Categories</div>
+            </div>
+            {% endif %}
+            {% if data.service_count %}
+            <div class="summary-card">
+                <div class="summary-card-value">{{ data.service_count }}</div>
+                <div class="summary-card-label">Services</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Address info -->
+    {% if data.address %}
+    <div class="kv-grid mt-20">
+        <div class="kv-item">
+            <div class="kv-label">Analyzed Address</div>
+            <div class="kv-value text-mono">{{ data.address }}</div>
+        </div>
+        {% if data.direction %}
+        <div class="kv-item">
+            <div class="kv-label">Direction</div>
+            <div class="kv-value">{{ data.direction|title }}</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<p class="text-muted">No exposure information available.</p>
+{% endif %}

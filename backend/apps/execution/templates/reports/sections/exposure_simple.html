@@ -1,0 +1,50 @@
+<!-- Exposure Section (xhtml2pdf compatible) -->
+{% if data.direct_exposure or data.indirect_exposure %}
+{% if data.direct_exposure %}
+<h3 style="font-size: 12pt; margin-bottom: 10px;">Direct Exposure</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Percentage</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for exp in data.direct_exposure %}
+        <tr>
+            <td>{{ exp.category|default:exp.name|default:"Unknown" }}</td>
+            <td>{{ exp.amount|default:exp.value|default:"0" }}</td>
+            <td>{{ exp.percentage|default:"N/A" }}%</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% if data.indirect_exposure %}
+<h3 style="font-size: 12pt; margin: 20px 0 10px 0;">Indirect Exposure</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Percentage</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for exp in data.indirect_exposure %}
+        <tr>
+            <td>{{ exp.category|default:exp.name|default:"Unknown" }}</td>
+            <td>{{ exp.amount|default:exp.value|default:"0" }}</td>
+            <td>{{ exp.percentage|default:"N/A" }}%</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% elif data %}
+{% include 'reports/sections/generic_data_simple.html' with data=data %}
+{% else %}
+<p class="text-muted">No exposure data available.</p>
+{% endif %}

@@ -1,0 +1,25 @@
+<!-- Cluster Balance Section (xhtml2pdf compatible) -->
+{% if data.balance_data %}
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Asset</th>
+            <th>Balance</th>
+            <th>USD Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data.balance_data %}
+        <tr>
+            <td>{{ item.asset|default:"N/A" }}</td>
+            <td>{{ item.balance|default:"0" }}</td>
+            <td>{{ item.usdValue|default:item.usd_value|default:"N/A" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% elif data %}
+{% include 'reports/sections/generic_data_simple.html' with data=data %}
+{% else %}
+<p class="text-muted">No balance data available.</p>
+{% endif %}

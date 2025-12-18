@@ -69,8 +69,119 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         workflow = self.get_object()
         workflow.soft_delete()
         logger.info(f"Soft deleted workflow: {workflow.name}")
-        
+
         return Response(
             {"message": f"Workflow '{workflow.name}' deleted successfully"},
             status=status.HTTP_204_NO_CONTENT
         )
+
+    @action(detail=True, methods=["post"])
+    def execute(self, request, uuid=None):
+        """
+        Execute a workflow.
+
+        POST /api/v1/workflows/{uuid}/execute/
+
+        Request body (optional):
+            {
+                "canvas_data": {...}  // Optional override for canvas data
+            }
+
+        Returns:
+            Execution log with results
+        """
+        from apps.execution.executor import WorkflowExecutor
+        from apps.execution.models import ExecutionLog
+
+        workflow = self.get_object()
+        logger.info(f"Executing workflow: {workflow.name}")
+
+        # Allow override of canvas_data from request (for unsaved workflows)
+        canvas_data = request.data.get("canvas_data")
+        if canvas_data:
+            workflow.canvas_data = canvas_data
+
+        try:
+            # Create executor and run
+            executor = WorkflowExecutor(workflow)
+            execution = executor.execute()
+
+            return Response({
+                "status": "success",
+                "execution_id": str(execution.uuid),
+                "execution_status": execution.status,
+                "started_at": execution.started_at.isoformat() if execution.started_at else None,
+                "completed_at": execution.completed_at.isoformat() if execution.completed_at else None,
+                "duration_seconds": execution.get_duration_seconds(),
+                "result_data": execution.result_data,
+                "error_message": execution.error_message or None,
+            })
+
+        except Exception as e:
+            logger.error(f"Workflow execution failed: {e}")
+            return Response({
+                "status": "error",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["post"])
+    def execute_direct(self, request):
+        """
+        Execute workflow directly without saving.
+
+        POST /api/v1/workflows/execute_direct/
+
+        Request body:
+            {
+                "nodes": [...],
+                "edges": [...],
+                "name": "My Workflow"
+            }
+
+        Returns:
+            Execution results with detailed logs
+        """
+        from apps.execution.executor import WorkflowExecutor
+
+        nodes = request.data.get("nodes", [])
+        edges = request.data.get("edges", [])
+        name = request.data.get("name", "Untitled Workflow")
+
+        if not nodes:
+            return Response({
+                "status": "error",
+                "error": "No nodes provided"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        logger.info(f"Direct execution: {name} ({len(nodes)} nodes, {len(edges)} edges)")
+
+        try:
+            # Create temporary workflow object (not saved to DB)
+            from apps.workflows.models import Workflow
+            temp_workflow = Workflow(
+                name=name,
+                canvas_data={
+                    "nodes": nodes,
+                    "edges": edges
+                }
+            )
+
+            # Execute
+            executor = WorkflowExecutor(temp_workflow)
+            result = executor.execute_direct()  # New method for direct execution
+
+            return Response({
+                "status": "success",
+                "execution_log": result.get("log", []),
+                "node_outputs": result.get("outputs", {}),
+                "summary": result.get("summary", {}),
+            })
+
+        except Exception as e:
+            logger.error(f"Direct execution failed: {e}")
+            import traceback
+            return Response({
+                "status": "error",
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

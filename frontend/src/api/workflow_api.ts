@@ -23,6 +23,7 @@ export const workflowApi = {
     saveWorkflowCanvas,
     getWorkflowCount,
     isWorkflowNameUnique,
+    executeWorkflowDirect,
 };
 
 // Also export types for convenience
@@ -181,7 +182,7 @@ export async function isWorkflowNameUnique(
 
 /**
  * Get workflow count.
- * 
+ *
  * @returns Promise resolving to number of workflows
  */
 export async function getWorkflowCount(): Promise<number> {
@@ -191,5 +192,49 @@ export async function getWorkflowCount(): Promise<number> {
     } catch (error) {
         console.error('Error getting workflow count:', error);
         return 0;
+    }
+}
+
+// =============================================================================
+// WORKFLOW EXECUTION
+// =============================================================================
+
+/**
+ * Response from direct workflow execution.
+ */
+export interface ExecuteDirectResponse {
+    status: 'success' | 'error';
+    execution_log: string[];
+    node_outputs: Record<string, any>;
+    summary: {
+        nodes_executed: number;
+        status: string;
+    };
+    error?: string;
+    traceback?: string;
+}
+
+/**
+ * Execute workflow directly without saving to database.
+ *
+ * @param nodes - Array of workflow nodes
+ * @param edges - Array of workflow edges
+ * @param name - Optional workflow name
+ * @returns Promise resolving to execution results
+ */
+export async function executeWorkflowDirect(
+    nodes: any[],
+    edges: any[],
+    name: string = 'Untitled Workflow'
+): Promise<ExecuteDirectResponse> {
+    try {
+        const response = await apiClient.post<ExecuteDirectResponse>(
+            '/workflows/execute_direct/',
+            { nodes, edges, name }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error executing workflow:', error);
+        throw error;
     }
 }

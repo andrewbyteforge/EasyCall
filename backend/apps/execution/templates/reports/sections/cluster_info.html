@@ -1,0 +1,72 @@
+<!-- Chainalysis Cluster Info Section -->
+{% if data %}
+<div class="section-content">
+    {% if data.cluster_info and data.cluster_info|length > 0 %}
+    {% for cluster in data.cluster_info %}
+    <div class="entity-card">
+        <div class="entity-header">
+            <div>
+                <div class="entity-name">{{ cluster.cluster_name|default:"Unknown Entity" }}</div>
+                <div class="entity-category">{{ cluster.category|default:"Unknown Category" }}</div>
+            </div>
+            {% if cluster.risk_level %}
+            <span class="risk-badge risk-{{ cluster.risk_level|lower }}">{{ cluster.risk_level }}</span>
+            {% endif %}
+        </div>
+        <div class="kv-grid">
+            {% if cluster.cluster_address %}
+            <div class="kv-item">
+                <div class="kv-label">Root Address</div>
+                <div class="kv-value text-mono">{{ cluster.cluster_address }}</div>
+            </div>
+            {% endif %}
+            {% if cluster.address_count %}
+            <div class="kv-item">
+                <div class="kv-label">Addresses in Cluster</div>
+                <div class="kv-value">{{ cluster.address_count }}</div>
+            </div>
+            {% endif %}
+            {% if cluster.first_seen %}
+            <div class="kv-item">
+                <div class="kv-label">First Activity</div>
+                <div class="kv-value">{{ cluster.first_seen }}</div>
+            </div>
+            {% endif %}
+            {% if cluster.last_seen %}
+            <div class="kv-item">
+                <div class="kv-label">Last Activity</div>
+                <div class="kv-value">{{ cluster.last_seen }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <!-- Single cluster display -->
+    <div class="entity-card">
+        <div class="entity-header">
+            <div>
+                <div class="entity-name">{{ data.cluster_name|default:"Unknown Entity" }}</div>
+                <div class="entity-category">{{ data.category|default:"Unknown Category" }}</div>
+            </div>
+        </div>
+        <div class="kv-grid">
+            {% if data.cluster_address %}
+            <div class="kv-item">
+                <div class="kv-label">Root Address</div>
+                <div class="kv-value text-mono">{{ data.cluster_address }}</div>
+            </div>
+            {% endif %}
+            {% if data.address %}
+            <div class="kv-item">
+                <div class="kv-label">Queried Address</div>
+                <div class="kv-value text-mono">{{ data.address }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<p class="text-muted">No cluster information available.</p>
+{% endif %}

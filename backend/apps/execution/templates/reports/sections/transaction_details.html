@@ -1,0 +1,117 @@
+<!-- Transaction Details Section -->
+{% if data %}
+<div class="section-content">
+    {% if data.transaction_details and data.transaction_details|length > 0 %}
+    {% for tx in data.transaction_details %}
+    <div class="entity-card">
+        <div class="entity-header">
+            <div>
+                <div class="entity-name">Transaction</div>
+                <div class="text-mono text-muted" style="font-size: 9pt; word-break: break-all;">
+                    {{ tx.tx_hash|default:tx.hash }}
+                </div>
+            </div>
+            {% if tx.status %}
+            <span class="risk-badge risk-{% if tx.status == 'confirmed' %}low{% else %}medium{% endif %}">
+                {{ tx.status }}
+            </span>
+            {% endif %}
+        </div>
+
+        <div class="kv-grid">
+            {% if tx.block_height %}
+            <div class="kv-item">
+                <div class="kv-label">Block Height</div>
+                <div class="kv-value">{{ tx.block_height }}</div>
+            </div>
+            {% endif %}
+            {% if tx.timestamp or tx.block_time %}
+            <div class="kv-item">
+                <div class="kv-label">Timestamp</div>
+                <div class="kv-value">{{ tx.timestamp|default:tx.block_time }}</div>
+            </div>
+            {% endif %}
+            {% if tx.fee %}
+            <div class="kv-item">
+                <div class="kv-label">Fee</div>
+                <div class="kv-value">{{ tx.fee }}</div>
+            </div>
+            {% endif %}
+            {% if tx.confirmations %}
+            <div class="kv-item">
+                <div class="kv-label">Confirmations</div>
+                <div class="kv-value">{{ tx.confirmations }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if tx.inputs %}
+        <h4 class="section-subtitle">Inputs ({{ tx.inputs|length }})</h4>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Address</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for input in tx.inputs %}
+                <tr>
+                    <td class="text-mono">{{ input.address|default:input.addresses.0|default:"Coinbase" }}</td>
+                    <td>{{ input.value|floatformat:8|default:"N/A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        {% if tx.outputs %}
+        <h4 class="section-subtitle">Outputs ({{ tx.outputs|length }})</h4>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Address</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for output in tx.outputs %}
+                <tr>
+                    <td class="text-mono">{{ output.address|default:output.addresses.0|default:"Unknown" }}</td>
+                    <td>{{ output.value|floatformat:8|default:"N/A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <!-- Single transaction -->
+    <div class="entity-card">
+        <div class="entity-header">
+            <div>
+                <div class="entity-name">Transaction Details</div>
+                {% if data.tx_hash %}
+                <div class="text-mono text-muted" style="font-size: 9pt; word-break: break-all;">
+                    {{ data.tx_hash }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="kv-grid">
+            {% for key, value in data.items %}
+            {% if key != 'inputs' and key != 'outputs' %}
+            <div class="kv-item">
+                <div class="kv-label">{{ key|title }}</div>
+                <div class="kv-value">{{ value }}</div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<p class="text-muted">No transaction details available.</p>
+{% endif %}

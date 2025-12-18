@@ -72,6 +72,7 @@ class NodeType(str, Enum):
     EXCEL_EXPORT = "excel_export"
     JSON_EXPORT = "json_export"
     CSV_EXPORT = "csv_export"
+    PDF_EXPORT = "pdf_export"
     CONSOLE_LOG = "console_log"
 
 
@@ -105,6 +106,7 @@ NODE_TYPE_CHOICES: List[Tuple[str, str]] = [
     (NodeType.EXCEL_EXPORT.value, "Export to Excel"),
     (NodeType.JSON_EXPORT.value, "Export to JSON"),
     (NodeType.CSV_EXPORT.value, "Export to CSV"),
+    (NodeType.PDF_EXPORT.value, "Export to PDF Report"),
     (NodeType.CONSOLE_LOG.value, "Console Log"),
 ]
 
@@ -289,6 +291,7 @@ class ExportFormat(str, Enum):
     EXCEL = "xlsx"
     JSON = "json"
     CSV = "csv"
+    PDF = "pdf"
 
 
 EXPORT_FORMAT_CHOICES: List[Tuple[str, str]] = [
@@ -296,6 +299,7 @@ EXPORT_FORMAT_CHOICES: List[Tuple[str, str]] = [
     (ExportFormat.EXCEL.value, "Excel File (.xlsx)"),
     (ExportFormat.JSON.value, "JSON File (.json)"),
     (ExportFormat.CSV.value, "CSV File (.csv)"),
+    (ExportFormat.PDF.value, "PDF Report (.pdf)"),
 ]
 
 # =============================================================================

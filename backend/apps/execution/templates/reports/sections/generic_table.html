@@ -1,0 +1,64 @@
+<!-- Generic Table Section for any tabular data -->
+{% if data %}
+<div class="section-content">
+    {% if data|length > 0 %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                {% if columns %}
+                    {% for col in columns %}
+                    <th>{{ col.label|default:col.key|title }}</th>
+                    {% endfor %}
+                {% else %}
+                    {% for key in data.0.keys %}
+                    <th>{{ key|title }}</th>
+                    {% endfor %}
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+            <tr>
+                {% if columns %}
+                    {% for col in columns %}
+                    <td>
+                        {% with value=row|get_item:col.key %}
+                        {% if col.type == 'address' or col.type == 'hash' %}
+                            <span class="text-mono">{{ value|default:"N/A" }}</span>
+                        {% elif col.type == 'currency' %}
+                            ${{ value|floatformat:2|default:"0.00" }}
+                        {% elif col.type == 'number' %}
+                            {{ value|floatformat:col.decimals|default:value|default:"0" }}
+                        {% elif col.type == 'risk' %}
+                            <span class="risk-badge risk-{{ value|lower|default:'unknown' }}">{{ value|default:"Unknown" }}</span>
+                        {% elif col.type == 'boolean' %}
+                            {% if value %}
+                            <span class="text-success">Yes</span>
+                            {% else %}
+                            <span class="text-danger">No</span>
+                            {% endif %}
+                        {% else %}
+                            {{ value|default:"N/A" }}
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                    {% endfor %}
+                {% else %}
+                    {% for key, value in row.items %}
+                    <td>{{ value|default:"N/A" }}</td>
+                    {% endfor %}
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p class="text-muted" style="font-size: 9pt; margin-top: 10px;">
+        Showing {{ data|length }} record{% if data|length != 1 %}s{% endif %}
+    </p>
+    {% else %}
+    <p class="text-muted">No data available.</p>
+    {% endif %}
+</div>
+{% else %}
+<p class="text-muted">No data available.</p>
+{% endif %}

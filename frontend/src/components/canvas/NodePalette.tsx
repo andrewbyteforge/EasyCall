@@ -2,7 +2,7 @@
 // FILE: frontend/src/components/canvas/NodePalette.tsx
 // =============================================================================
 // Draggable node palette for the workflow canvas.
-// Displays all 21 available node types organized by platform.
+// Displays static nodes + dynamic database-driven nodes organized by provider.
 // =============================================================================
 
 import React, { useState, useMemo } from 'react';
@@ -17,15 +17,20 @@ import {
     Tooltip,
     Chip,
     IconButton,
+    CircularProgress,
+    Alert,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import HomeIcon from '@mui/icons-material/Home';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import {
     NodeTypeDefinition,
     getAllNodeTypes,
     NodeCategory,
 } from '../../types/node_types';
+import { useGeneratedNodes } from '../../hooks/useProviders';
+import { GeneratedNodeDefinition } from '../../types/provider';
 
 // =============================================================================
 // TYPES
@@ -45,10 +50,87 @@ interface CategoryConfig {
 }
 
 // =============================================================================
-// CATEGORY CONFIGURATION (Platform-based organization)
+// HELPER FUNCTIONS
 // =============================================================================
 
-const CATEGORIES: CategoryConfig[] = [
+/**
+ * Convert GeneratedNodeDefinition (from database) to NodeTypeDefinition (for canvas).
+ * This allows database nodes to work with existing node rendering logic.
+ */
+function convertGeneratedNodeToNodeType(
+    generatedNode: GeneratedNodeDefinition
+): NodeTypeDefinition {
+    return {
+        type: generatedNode.type,
+        category: NodeCategory.QUERY, // Generated nodes are always query nodes
+        provider: generatedNode.provider as any,
+
+        // Convenience properties
+        name: generatedNode.name,
+        icon: generatedNode.visual.icon,
+        color: generatedNode.visual.color,
+        description: generatedNode.description,
+        longDescription: generatedNode.description,
+
+        // Nested objects
+        visual: {
+            icon: generatedNode.visual.icon,
+            color: generatedNode.visual.color,
+            width: generatedNode.visual.width,
+            height: generatedNode.visual.height,
+        },
+        documentation: {
+            name: generatedNode.name,
+            description: generatedNode.description,
+            longDescription: generatedNode.description,
+            usage: `Connect inputs → Execute → Use outputs`,
+            examples: [`Query ${generatedNode.provider} API`],
+        },
+        inputs: generatedNode.inputs.map((pin) => ({
+            id: pin.id,
+            label: pin.label,
+            type: pin.type as any,
+            required: pin.required,
+            description: pin.description,
+        })),
+        outputs: generatedNode.outputs.map((pin) => ({
+            id: pin.id,
+            label: pin.label,
+            type: pin.type as any,
+            description: pin.description,
+        })),
+        configuration: generatedNode.configuration || [],
+    };
+}
+
+/**
+ * Get dynamic categories based on providers in database.
+ */
+function getDynamicCategories(
+    generatedNodes: GeneratedNodeDefinition[]
+): CategoryConfig[] {
+    // Get unique providers from generated nodes
+    const providers = Array.from(
+        new Set(generatedNodes.map((node) => node.provider))
+    );
+
+    // Create category for each provider
+    return providers.map((provider) => ({
+        key: `dynamic_${provider}`,
+        icon: '🔌', // Plugin icon for dynamic providers
+        label: `${provider.charAt(0).toUpperCase() + provider.slice(1)} (Database)`,
+        defaultExpanded: true,
+        color: '#00897b', // Teal for all dynamic query nodes
+        filter: (node: NodeTypeDefinition) =>
+            node.provider === provider && node.type.startsWith(`${provider}_`),
+    }));
+}
+
+// =============================================================================
+// STATIC CATEGORIES (Configuration, Input, Output, and hardcoded providers)
+// =============================================================================
+
+const STATIC_CATEGORIES: CategoryConfig[] = [
     {
         key: 'configuration',
         icon: '🔑',
@@ -71,7 +153,7 @@ const CATEGORIES: CategoryConfig[] = [
         label: 'Chainalysis',
         defaultExpanded: true,
         color: '#00897b',
-        filter: (node) => node.provider === 'chainalysis',
+        filter: (node) => node.provider === 'chainalysis' && !node.type.startsWith('chainalysis_dynamic'),
     },
     {
         key: 'trm',
@@ -79,7 +161,7 @@ const CATEGORIES: CategoryConfig[] = [
         label: 'TRM Labs',
         defaultExpanded: true,
         color: '#00897b',
-        filter: (node) => node.provider === 'trm',
+        filter: (node) => node.provider === 'trm' && !node.type.startsWith('trm_dynamic'),
     },
     {
         key: 'output',
@@ -160,7 +242,7 @@ const NodePaletteItem: React.FC<{
                     variant="caption"
                     sx={{ display: 'block', mt: 1, fontStyle: 'italic', color: '#aaa' }}
                 >
-                    Provider: {node.provider === 'chainalysis' ? 'Chainalysis' : 'TRM Labs'}
+                    Provider: {node.provider === 'chainalysis' ? 'Chainalysis' : node.provider === 'trm' ? 'TRM Labs' : node.provider}
                 </Typography>
             )}
         </Box>
@@ -342,10 +424,35 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
     const [searchQuery, setSearchQuery] = useState<string>('');
 
     // ---------------------------------------------------------------------------
-    // GET ALL NODES
+    // FETCH DYNAMIC NODES FROM DATABASE
     // ---------------------------------------------------------------------------
 
-    const allNodes = useMemo(() => getAllNodeTypes(), []);
+    const {
+        nodes: generatedNodes,
+        loading: loadingNodes,
+        error: nodeError,
+        refetch: refetchNodes,
+    } = useGeneratedNodes();
+
+    // ---------------------------------------------------------------------------
+    // GET STATIC NODES
+    // ---------------------------------------------------------------------------
+
+    const staticNodes = useMemo(() => getAllNodeTypes(), []);
+
+    // ---------------------------------------------------------------------------
+    // MERGE STATIC + DYNAMIC NODES
+    // ---------------------------------------------------------------------------
+
+    const allNodes = useMemo(() => {
+        // Convert generated nodes to NodeTypeDefinition format
+        const convertedGeneratedNodes = generatedNodes.map(
+            convertGeneratedNodeToNodeType
+        );
+
+        // Merge static and dynamic nodes
+        return [...staticNodes, ...convertedGeneratedNodes];
+    }, [staticNodes, generatedNodes]);
 
     // ---------------------------------------------------------------------------
     // FILTER NODES BY SEARCH
@@ -365,15 +472,27 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
     }, [allNodes, searchQuery]);
 
     // ---------------------------------------------------------------------------
+    // BUILD CATEGORIES (Static + Dynamic)
+    // ---------------------------------------------------------------------------
+
+    const categories = useMemo(() => {
+        // Get dynamic categories from generated nodes
+        const dynamicCategories = getDynamicCategories(generatedNodes);
+
+        // Merge static categories with dynamic ones
+        return [...STATIC_CATEGORIES, ...dynamicCategories];
+    }, [generatedNodes]);
+
+    // ---------------------------------------------------------------------------
     // ORGANIZE NODES BY CATEGORY
     // ---------------------------------------------------------------------------
 
     const categorizedNodes = useMemo(() => {
-        return CATEGORIES.map((category) => ({
+        return categories.map((category) => ({
             ...category,
             nodes: filteredNodes.filter(category.filter),
         }));
-    }, [filteredNodes]);
+    }, [categories, filteredNodes]);
 
     // ---------------------------------------------------------------------------
     // TOTAL COUNT
@@ -413,7 +532,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                     borderBottom: '1px solid #3e3e42',
                 }}
             >
-                {/* Title Row with Home Button */}
+                {/* Title Row with Home Button and Refresh */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                     {/* Home Button */}
                     <Tooltip title="Return to Home" placement="right">
@@ -450,6 +569,36 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                         Node Library
                     </Typography>
 
+                    {/* Refresh Button */}
+                    <Tooltip title="Refresh nodes from database" placement="left">
+                        <IconButton
+                            onClick={refetchNodes}
+                            disabled={loadingNodes}
+                            size="small"
+                            sx={{
+                                color: '#cccccc',
+                                backgroundColor: '#2d2d30',
+                                border: '1px solid #3e3e42',
+                                '&:hover': {
+                                    backgroundColor: '#37373d',
+                                    borderColor: '#00897b',
+                                    color: '#00897b',
+                                },
+                                '&:disabled': {
+                                    opacity: 0.5,
+                                },
+                                width: 32,
+                                height: 32,
+                            }}
+                        >
+                            {loadingNodes ? (
+                                <CircularProgress size={16} sx={{ color: '#00897b' }} />
+                            ) : (
+                                <RefreshIcon sx={{ fontSize: '1.1rem' }} />
+                            )}
+                        </IconButton>
+                    </Tooltip>
+
                     {/* Count Badge */}
                     <Chip
                         label={totalCount}
@@ -462,6 +611,62 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                         }}
                     />
                 </Box>
+
+                {/* Loading/Error Status */}
+                {loadingNodes && (
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            mb: 1,
+                            padding: '6px 8px',
+                            backgroundColor: '#2d2d30',
+                            borderRadius: '4px',
+                            border: '1px solid #00897b40',
+                        }}
+                    >
+                        <CircularProgress size={14} sx={{ color: '#00897b' }} />
+                        <Typography sx={{ fontSize: '0.75rem', color: '#00897b' }}>
+                            Loading database nodes...
+                        </Typography>
+                    </Box>
+                )}
+
+                {nodeError && (
+                    <Alert
+                        severity="warning"
+                        sx={{
+                            mb: 1,
+                            fontSize: '0.75rem',
+                            padding: '4px 8px',
+                            backgroundColor: '#3e3e42',
+                            color: '#f0ad4e',
+                            '& .MuiAlert-icon': {
+                                fontSize: '1rem',
+                            },
+                        }}
+                    >
+                        Failed to load database nodes. Showing static nodes only.
+                    </Alert>
+                )}
+
+                {/* Database Node Count */}
+                {generatedNodes.length > 0 && (
+                    <Typography
+                        sx={{
+                            mb: 1,
+                            fontSize: '0.75rem',
+                            color: '#00897b',
+                            textAlign: 'center',
+                            padding: '4px',
+                            backgroundColor: '#00897b20',
+                            borderRadius: '4px',
+                        }}
+                    >
+                        🔌 {generatedNodes.length} node{generatedNodes.length !== 1 ? 's' : ''} from database
+                    </Typography>
+                )}
 
                 {/* Search Box */}
                 <TextField
@@ -539,6 +744,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                             color: '#858585',
                         }}
                     >
+                        <SearchIcon sx={{ fontSize: '2.5rem', mb: 1, opacity: 0.5 }} />
                         <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                             No nodes found matching "{searchQuery}"
                         </Typography>

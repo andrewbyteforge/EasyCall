@@ -326,3 +326,46 @@ IMPORT_FORMAT_CHOICES: List[Tuple[str, str]] = [
     (ImportFormat.PDF.value, "PDF File (.pdf)"),
     (ImportFormat.WORD.value, "Word File (.docx)"),
 ]
+
+
+
+# =============================================================================
+# FILE: backend/fields/choices.py
+# =============================================================================
+"""
+Choice field enumerations and constants.
+"""
+
+# =============================================================================
+# API PROVIDER CHOICES
+# =============================================================================
+
+class APIProvider:
+    """API provider identifiers."""
+    CHAINALYSIS = 'chainalysis'
+    TRM_LABS = 'trm_labs'
+
+
+API_PROVIDER_CHOICES = [
+    (APIProvider.CHAINALYSIS, 'Chainalysis'),
+    (APIProvider.TRM_LABS, 'TRM Labs'),
+]
+
+# =============================================================================
+# EXECUTION STATUS CHOICES
+# =============================================================================
+
+class ExecutionStatus:
+    """Execution status identifiers."""
+    PENDING = 'PENDING'
+    RUNNING = 'RUNNING'
+    COMPLETED = 'COMPLETED'
+    FAILED = 'FAILED'
+
+
+EXECUTION_STATUS_CHOICES = [
+    (ExecutionStatus.PENDING, 'Pending'),
+    (ExecutionStatus.RUNNING, 'Running'),
+    (ExecutionStatus.COMPLETED, 'Completed'),
+    (ExecutionStatus.FAILED, 'Failed'),
+]

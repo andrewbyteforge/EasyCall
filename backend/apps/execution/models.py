@@ -70,7 +70,7 @@ class ExecutionLog(BaseModel):
         verbose_name=get_verbose_name(FIELD_EXECUTION_STATUS),
         max_length=20,
         choices=EXECUTION_STATUS_CHOICES,
-        default=ExecutionStatus.PENDING.value,
+        default=ExecutionStatus.PENDING,
         db_index=True,
         help_text="Current execution status",
     )

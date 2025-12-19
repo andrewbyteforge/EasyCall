@@ -76,3 +76,25 @@ def get_verbose_name(field_name: str) -> str:
         Human-readable verbose name.
     """
     return VERBOSE_NAMES.get(field_name, field_name.replace('_', ' ').title())
+
+
+
+# =============================================================================
+# API INTEGRATION FIELDS
+# =============================================================================
+
+FIELD_API_PROVIDER_NAME = "api_provider_name"
+FIELD_API_VERSION = "api_version"
+FIELD_SPEC_FILE = "spec_file"
+FIELD_PARSED_ENDPOINTS = "parsed_endpoints"
+
+# Update the FIELD_VERBOSE_NAMES dictionary
+FIELD_VERBOSE_NAMES = {
+    # ... existing fields ...
+    
+    # API Integration fields
+    FIELD_API_PROVIDER_NAME: "API Provider Name",
+    FIELD_API_VERSION: "API Version",
+    FIELD_SPEC_FILE: "Specification File",
+    FIELD_PARSED_ENDPOINTS: "Parsed Endpoints",
+}

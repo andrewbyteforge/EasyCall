@@ -327,45 +327,86 @@ IMPORT_FORMAT_CHOICES: List[Tuple[str, str]] = [
     (ImportFormat.WORD.value, "Word File (.docx)"),
 ]
 
-
-
 # =============================================================================
-# FILE: backend/fields/choices.py
-# =============================================================================
-"""
-Choice field enumerations and constants.
-"""
-
-# =============================================================================
-# API PROVIDER CHOICES
+# PROVIDER STATUS CHOICES (Phase 2 - Provider Management)
 # =============================================================================
 
-class APIProvider:
-    """API provider identifiers."""
-    CHAINALYSIS = 'chainalysis'
-    TRM_LABS = 'trm_labs'
+
+class ProviderStatus(str, Enum):
+    """Status of API provider in the system."""
+
+    ACTIVE = "active"
+    DEPRECATED = "deprecated"
+    INACTIVE = "inactive"
 
 
-API_PROVIDER_CHOICES = [
-    (APIProvider.CHAINALYSIS, 'Chainalysis'),
-    (APIProvider.TRM_LABS, 'TRM Labs'),
+PROVIDER_STATUS_CHOICES: List[Tuple[str, str]] = [
+    (ProviderStatus.ACTIVE.value, "Active"),
+    (ProviderStatus.DEPRECATED.value, "Deprecated"),
+    (ProviderStatus.INACTIVE.value, "Inactive"),
 ]
 
 # =============================================================================
-# EXECUTION STATUS CHOICES
+# AUTHENTICATION TYPE CHOICES (Phase 2 - Provider Management)
 # =============================================================================
 
-class ExecutionStatus:
-    """Execution status identifiers."""
-    PENDING = 'PENDING'
-    RUNNING = 'RUNNING'
-    COMPLETED = 'COMPLETED'
-    FAILED = 'FAILED'
+
+class AuthType(str, Enum):
+    """API authentication types supported by providers."""
+
+    API_KEY = "api_key"
+    BEARER_TOKEN = "bearer_token"
+    OAUTH = "oauth"
+    BASIC_AUTH = "basic_auth"
+    NONE = "none"
 
 
-EXECUTION_STATUS_CHOICES = [
-    (ExecutionStatus.PENDING, 'Pending'),
-    (ExecutionStatus.RUNNING, 'Running'),
-    (ExecutionStatus.COMPLETED, 'Completed'),
-    (ExecutionStatus.FAILED, 'Failed'),
+AUTH_TYPE_CHOICES: List[Tuple[str, str]] = [
+    (AuthType.API_KEY.value, "API Key"),
+    (AuthType.BEARER_TOKEN.value, "Bearer Token"),
+    (AuthType.OAUTH.value, "OAuth 2.0"),
+    (AuthType.BASIC_AUTH.value, "Basic Authentication"),
+    (AuthType.NONE.value, "No Authentication"),
+]
+
+# =============================================================================
+# HTTP METHOD CHOICES (Phase 2 - Provider Management)
+# =============================================================================
+
+
+class HTTPMethod(str, Enum):
+    """HTTP methods for API endpoints."""
+
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+    PATCH = "PATCH"
+
+
+HTTP_METHOD_CHOICES: List[Tuple[str, str]] = [
+    (HTTPMethod.GET.value, "GET"),
+    (HTTPMethod.POST.value, "POST"),
+    (HTTPMethod.PUT.value, "PUT"),
+    (HTTPMethod.DELETE.value, "DELETE"),
+    (HTTPMethod.PATCH.value, "PATCH"),
+]
+
+# =============================================================================
+# OPENAPI SPEC FORMAT CHOICES (Phase 2 - Provider Management)
+# =============================================================================
+
+
+class SpecFormat(str, Enum):
+    """OpenAPI specification formats."""
+
+    OPENAPI_30 = "openapi_3.0"
+    OPENAPI_31 = "openapi_3.1"
+    SWAGGER_20 = "swagger_2.0"
+
+
+SPEC_FORMAT_CHOICES: List[Tuple[str, str]] = [
+    (SpecFormat.OPENAPI_30.value, "OpenAPI 3.0"),
+    (SpecFormat.OPENAPI_31.value, "OpenAPI 3.1"),
+    (SpecFormat.SWAGGER_20.value, "Swagger 2.0"),
 ]

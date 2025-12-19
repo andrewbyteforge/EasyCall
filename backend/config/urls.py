@@ -13,6 +13,8 @@ URL configuration for the EasyCall project.
 
 from django.contrib import admin
 from django.urls import include, path
+from django.conf import settings
+from django.conf.urls.static import static
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -28,7 +30,7 @@ urlpatterns = [
     # Admin Interface
     # -------------------------------------------------------------------------
     path("admin/", admin.site.urls),
-
+    
     # -------------------------------------------------------------------------
     # API Documentation
     # -------------------------------------------------------------------------
@@ -47,7 +49,7 @@ urlpatterns = [
         SpectacularRedocView.as_view(url_name="schema"),
         name="redoc"
     ),
-
+    
     # -------------------------------------------------------------------------
     # API Version 1 Endpoints
     # -------------------------------------------------------------------------
@@ -71,7 +73,26 @@ urlpatterns = [
         "api/v1/settings/",
         include("apps.settings_manager.urls", namespace="settings")
     ),
+    path(
+        "api/v1/providers/",
+        include("apps.providers.urls", namespace="providers")
+    ),
+    path(
+        "api/v1/integrations/",
+        include("apps.integrations.urls", namespace="integrations")  # ADDED NAMESPACE
+    ),
 ]
+
+# =============================================================================
+# MEDIA FILES (Development Only)
+# =============================================================================
+
+if settings.DEBUG:
+    # Serve media files (uploaded OpenAPI specs) during development
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    
+    # Serve static files during development (if needed)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # =============================================================================
 # ADMIN SITE CUSTOMIZATION

@@ -16,9 +16,11 @@ import {
     AccordionDetails,
     Tooltip,
     Chip,
+    IconButton,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import HomeIcon from '@mui/icons-material/Home';
 import {
     NodeTypeDefinition,
     getAllNodeTypes,
@@ -164,7 +166,7 @@ const NodePaletteItem: React.FC<{
         </Box>
     );
 
-    // ⭐ DRAG START HANDLER - More explicit typing
+    // Drag start handler
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>): void => {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('application/reactflow', node.type);
@@ -380,6 +382,15 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
     const totalCount = filteredNodes.length;
 
     // ---------------------------------------------------------------------------
+    // HOME NAVIGATION
+    // ---------------------------------------------------------------------------
+
+    const handleHomeClick = (): void => {
+        // Navigate to Django backend landing page
+        window.location.href = 'http://localhost:8000/';
+    };
+
+    // ---------------------------------------------------------------------------
     // RENDER
     // ---------------------------------------------------------------------------
 
@@ -402,7 +413,31 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                     borderBottom: '1px solid #3e3e42',
                 }}
             >
+                {/* Title Row with Home Button */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                    {/* Home Button */}
+                    <Tooltip title="Return to Home" placement="right">
+                        <IconButton
+                            onClick={handleHomeClick}
+                            size="small"
+                            sx={{
+                                color: '#cccccc',
+                                backgroundColor: '#2d2d30',
+                                border: '1px solid #3e3e42',
+                                '&:hover': {
+                                    backgroundColor: '#37373d',
+                                    borderColor: '#0e639c',
+                                    color: '#0e639c',
+                                },
+                                width: 32,
+                                height: 32,
+                            }}
+                        >
+                            <HomeIcon sx={{ fontSize: '1.1rem' }} />
+                        </IconButton>
+                    </Tooltip>
+
+                    {/* Title */}
                     <Typography
                         variant="h6"
                         sx={{
@@ -414,6 +449,8 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                     >
                         Node Library
                     </Typography>
+
+                    {/* Count Badge */}
                     <Chip
                         label={totalCount}
                         size="small"

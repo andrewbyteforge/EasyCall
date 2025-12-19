@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - EasyCall Blockchain Intelligence{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="hero-badge">
+            <i class="bi bi-lightning-charge-fill"></i>
+            Powered by Blockchain Intelligence
+        </div>
+        <h1 class="hero-title">Build Intelligence<br>Workflows Visually</h1>
+        <p class="hero-subtitle">
+            Transform complex blockchain investigations into drag-and-drop workflows. 
+            Connect to Chainalysis, TRM Labs, and more—no code required.
+        </p>
+    </div>
+</section>
+
+<!-- Statistics Section -->
+<section class="stats-section">
+    <div class="container">
+        <div id="stats-container" class="row g-4">
+            <!-- Loading spinner -->
+            <div class="col-12">
+                <div class="loading-container">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3" style="color: var(--text-secondary);">Loading system metrics...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Actions Section -->
+<section class="actions-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Get Started</h2>
+            <p class="section-subtitle">Choose an action to begin building your blockchain intelligence workflows</p>
+        </div>
+        <div id="actions-container" class="row g-4">
+            <!-- Loading spinner -->
+            <div class="col-12">
+                <div class="loading-container">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3" style="color: var(--text-secondary);">Loading actions...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+    // Icon mapping for Bootstrap Icons
+    const iconMap = {
+        'cloud_upload': 'bi-cloud-arrow-up-fill',
+        'add_box': 'bi-plus-circle-fill',
+        'list': 'bi-kanban-fill',
+        'history': 'bi-clock-history',
+        'settings': 'bi-gear-fill',
+        'description': 'bi-file-earmark-text-fill'
+    };
+    
+    // Stat icons
+    const statIcons = {
+        'workflows': 'bi-diagram-3-fill',
+        'active': 'bi-lightning-charge-fill',
+        'providers': 'bi-plug-fill',
+        'executions': 'bi-play-circle-fill'
+    };
+    
+    // Load dashboard statistics
+    async function loadStats() {
+        try {
+            const response = await fetch('/api/stats/');  // CHANGED THIS LINE
+            const data = await response.json();
+            
+            const statsHtml = `
+                <div class="col-md-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="bi ${statIcons.workflows}"></i>
+                        </div>
+                        <div class="stat-value">${data.workflows.total}</div>
+                        <div class="stat-label">Workflows</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="bi ${statIcons.active}"></i>
+                        </div>
+                        <div class="stat-value">${data.workflows.active}</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="bi ${statIcons.providers}"></i>
+                        </div>
+                        <div class="stat-value">${data.providers.total}</div>
+                        <div class="stat-label">Providers</div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="bi ${statIcons.executions}"></i>
+                        </div>
+                        <div class="stat-value">${data.executions.total}</div>
+                        <div class="stat-label">Executions</div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('stats-container').innerHTML = statsHtml;
+        } catch (error) {
+            document.getElementById('stats-container').innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> Failed to load statistics
+                    </div>
+                </div>
+            `;
+            console.error('Error loading stats:', error);
+        }
+    }
+    
+    // Load quick actions
+    async function loadActions() {
+        try {
+            const response = await fetch('/api/quick-actions/');  // CHANGED THIS LINE
+            const data = await response.json();
+            
+            const actionsHtml = data.actions.map(action => `
+                <div class="col-md-6 col-lg-4">
+                    <a href="${action.route}" class="action-card">
+                        <div class="action-icon">
+                            <i class="bi ${iconMap[action.icon] || 'bi-gear-fill'}"></i>
+                        </div>
+                        <div class="action-title">${action.label}</div>
+                        <div class="action-description">${action.description}</div>
+                    </a>
+                </div>
+            `).join('');
+            
+            document.getElementById('actions-container').innerHTML = actionsHtml;
+        } catch (error) {
+            document.getElementById('actions-container').innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> Failed to load quick actions
+                    </div>
+                </div>
+            `;
+            console.error('Error loading actions:', error);
+        }
+    }
+    
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadStats();
+        loadActions();
+    });
+</script>
+{% endblock %}

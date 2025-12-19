@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ feature }} - Coming Soon{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Back to Home - Top -->
+    <div style="padding-top: 2rem;">
+        <a href="{% url 'dashboard:home' %}" style="
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.3s ease;
+        " onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">
+            <i class="bi bi-arrow-left"></i> Back to Home
+        </a>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="text-center" style="padding: 80px 0;">
+        <div style="font-size: 5rem; margin-bottom: 2rem;">
+            <i class="bi bi-hourglass-split" style="background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+        </div>
+        <h1 class="hero-title" style="font-size: 3rem; margin-bottom: 1.5rem;">{{ feature }}</h1>
+        <p class="hero-subtitle" style="margin-bottom: 3rem;">
+            This feature is currently under development and will be available soon.<br>
+            The React frontend with visual workflow canvas is coming in the next phase.
+        </p>
+        
+        <!-- Primary Home Button -->
+        <a href="{% url 'dashboard:home' %}" class="btn btn-lg" style="
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 1rem 3rem;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.3)'">
+            <i class="bi bi-house-fill"></i> Return to Home
+        </a>
+        
+        <!-- Alternative Actions -->
+        <div style="margin-top: 4rem;">
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 1.1rem;">In the meantime, you can:</p>
+            <div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;">
+                <a href="/api/docs/" style="
+                    color: var(--accent-blue); 
+                    text-decoration: none;
+                    font-size: 1rem;
+                    padding: 0.75rem 1.5rem;
+                    background: var(--card-bg);
+                    border: 1px solid var(--card-border);
+                    border-radius: 10px;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.borderColor='rgba(79, 172, 254, 0.5)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--card-border)'; this.style.transform='translateY(0)'">
+                    <i class="bi bi-file-text"></i> View API Documentation
+                </a>
+                <a href="/admin/" style="
+                    color: var(--accent-purple); 
+                    text-decoration: none;
+                    font-size: 1rem;
+                    padding: 0.75rem 1.5rem;
+                    background: var(--card-bg);
+                    border: 1px solid var(--card-border);
+                    border-radius: 10px;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.borderColor='rgba(102, 126, 234, 0.5)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--card-border)'; this.style.transform='translateY(0)'">
+                    <i class="bi bi-gear"></i> Access Admin Panel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

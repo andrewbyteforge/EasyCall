@@ -1,3 +1,6 @@
+**File: `README.md`**
+
+```markdown
 # EasyCall - Blockchain Intelligence Workflow Builder
 
 Visual, no-code workflow builder for blockchain intelligence queries with dynamic API provider management.
@@ -19,6 +22,7 @@ Visual, no-code workflow builder for blockchain intelligence queries with dynami
 - 🎨 Visual node-based workflow editor (React Flow)
 - 🔗 Drag-and-drop node connections
 - 🔌 **Dynamic API integration system** ✅ COMPLETE
+- 🏠 **Professional landing page with live statistics** ✅ COMPLETE
 - 📊 Chainalysis Reactor and TRM Labs API integration
 - 🤖 **Automatic node generation from OpenAPI specifications** ✅ COMPLETE
 - 🛠️ **Admin interface for specification management** ✅ COMPLETE
@@ -38,6 +42,7 @@ Visual, no-code workflow builder for blockchain intelligence queries with dynami
 **Database:** SQLite (portable)  
 **Integration System:** OpenAPI-driven with automatic node generation ✅  
 **APIs:** Dynamic integration (Chainalysis Reactor, TRM Labs, Custom APIs via OpenAPI specs)
+
 ```
 easycall/
 ├── backend/          # Django REST API
@@ -46,7 +51,11 @@ easycall/
 │   │   ├── workflows/         # Workflow CRUD ✅
 │   │   ├── execution/         # Workflow execution engine ✅
 │   │   ├── nodes/             # Node implementations
-│   │   ├── integrations/      # OpenAPI integration system ✅ NEW
+│   │   ├── dashboard/         # Landing page app ✅ NEW
+│   │   │   ├── views.py       # Template views ✅
+│   │   │   ├── urls.py        # URL routing ✅
+│   │   │   └── tests.py       # Unit tests
+│   │   ├── integrations/      # OpenAPI integration system ✅
 │   │   │   ├── models.py      # OpenAPISpec model ✅
 │   │   │   ├── openapi_parser.py    # Spec parser ✅
 │   │   │   ├── node_generator.py    # Node auto-generation ✅
@@ -55,20 +64,63 @@ easycall/
 │   │   │   ├── admin.py             # Django admin ✅
 │   │   │   └── tests.py             # Unit tests ✅
 │   │   └── settings_manager/  # Global settings ✅
+│   ├── templates/   # Django templates ✅ NEW
+│   │   ├── base.html          # Base template ✅
+│   │   └── dashboard/         # Dashboard templates ✅
+│   │       ├── home.html      # Landing page ✅
+│   │       └── coming_soon.html  # Placeholder pages ✅
+│   ├── static/      # Static files (CSS, JS, images)
 │   ├── config/      # Django settings
 │   ├── media/       # User uploads (OpenAPI specs) ✅
 │   │   └── api_specs/         # Uploaded specifications ✅
 │   ├── test_data/   # Sample OpenAPI specs for testing ✅
 │   └── manage.py    # Django CLI
 │
-└── frontend/        # React application (Next Phase)
+└── frontend/        # React application
     └── src/         # React components
         └── components/
-            └── admin/         # Admin UI components (Planned)
-                ├── SpecManager.tsx
-                ├── SpecUploader.tsx
-                └── NodePreview.tsx
+            └── canvas/
+                └── NodePalette.tsx  # With home button ✅
 ```
+
+---
+
+## 🏠 Landing Page & Dashboard
+
+### Professional Web Interface ✅ COMPLETE
+
+EasyCall features a modern, crypto-themed landing page built with Django templates and Bootstrap 5:
+
+**Features:**
+- 🎨 **Sleek Design:** Purple-blue gradient theme with glassmorphism effects
+- 📊 **Live Statistics:** Real-time workflow, provider, and execution metrics
+- 🚀 **Quick Actions:** Six action cards for common tasks
+- 📱 **Responsive:** Mobile-friendly design
+- 🌙 **Dark Theme:** Professional blockchain intelligence aesthetic
+- 🏠 **Easy Navigation:** Home buttons throughout the application
+
+**Access Points:**
+- **Landing Page:** http://localhost:8000/
+- **Quick Actions:**
+  - Create Workflow → http://localhost:3000/workflows/new
+  - Add API Provider → http://localhost:3000/integrations/upload
+  - View Workflows → http://localhost:3000/workflows
+  - View Executions → http://localhost:3000/executions
+  - Manage Settings → http://localhost:3000/settings
+  - API Documentation → http://localhost:8000/api/docs/
+
+**Dashboard API Endpoints:**
+- `GET /api/stats/` - System statistics (workflows, providers, executions)
+- `GET /api/quick-actions/` - Action card definitions
+- `GET /api/recent-activity/` - Activity timeline
+
+**Technology Stack:**
+- Django Templates with Template Inheritance
+- Bootstrap 5.3.2 for responsive layout
+- Bootstrap Icons for consistent iconography
+- Google Fonts (Inter) for modern typography
+- Vanilla JavaScript for API integration
+- CSS3 animations and transitions
 
 ---
 
@@ -222,11 +274,11 @@ start-application.bat
 ```
 
 **Application URLs:**
-- Backend: http://localhost:8000
-- Frontend: http://localhost:3000 (Coming Soon)
+- **Landing Page:** http://localhost:8000/ ✅
+- Frontend Canvas: http://localhost:3000 (React - Phase 3)
 - API Docs: http://localhost:8000/api/docs/
 - Admin: http://localhost:8000/admin/
-- **Integrations Admin:** http://localhost:8000/admin/integrations/openapispec/ ✅
+- **Integrations Admin:** http://localhost:8000/admin/integrations/openapispec/
 
 ### Linux/macOS Setup
 ```bash
@@ -277,7 +329,9 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-### Frontend (Coming Soon)
+**Visit:** http://localhost:8000/ to see the landing page! 🎉
+
+### Frontend (Phase 3)
 ```bash
 cd frontend
 
@@ -298,6 +352,7 @@ npm start
 
 Once the server is running:
 
+- **Landing Page:** http://localhost:8000/ ✅
 - **Swagger UI:** http://localhost:8000/api/docs/
 - **ReDoc:** http://localhost:8000/api/redoc/
 - **OpenAPI Schema:** http://localhost:8000/api/schema/
@@ -314,7 +369,16 @@ Once the server is running:
 | `/api/v1/settings/` | GET, PUT | Global settings |
 | `/api/v1/settings/credentials/` | GET, POST | API credentials |
 
-### Integration Endpoints ✅ NEW
+### Dashboard Endpoints ✅ NEW
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Landing page (HTML) |
+| `/api/stats/` | GET | System statistics |
+| `/api/quick-actions/` | GET | Quick action cards |
+| `/api/recent-activity/` | GET | Activity timeline |
+
+### Integration Endpoints ✅
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -335,6 +399,7 @@ EasyCall generates nodes **dynamically** from OpenAPI specifications:
 - **Type Safety:** OpenAPI types mapped to workflow data types
 - **Consistent Behavior:** Standardized patterns across all providers
 - **Instant Updates:** Specification changes reflected immediately
+- **Home Navigation:** Every interface includes easy navigation back to landing page ✅
 
 ### Data Type Mapping
 
@@ -394,6 +459,9 @@ python manage.py test apps.integrations.tests.OpenAPIParserTests
 
 # Test node generator
 python manage.py test apps.integrations.tests.NodeGeneratorTests
+
+# Test dashboard endpoints
+python manage.py test apps.dashboard
 ```
 
 **Test Results:**
@@ -403,10 +471,11 @@ python manage.py test apps.integrations.tests.NodeGeneratorTests
 ✅ Generated 4 TRM Labs nodes
 ✅ Generated 4 Chainalysis nodes
 ✅ Database CRUD operations working
+✅ Dashboard endpoints returning data
 ✅ All tests passed
 ```
 
-### Frontend Tests (Coming Soon)
+### Frontend Tests (Phase 3)
 ```bash
 cd frontend
 
@@ -450,7 +519,7 @@ black .
 isort .
 ```
 
-### Frontend Commands (Coming Soon)
+### Frontend Commands (Phase 3)
 ```bash
 # Start development server
 npm start
@@ -476,6 +545,7 @@ npm run lint
 - **File Upload:** Validated extensions and size limits (5MB max)
 - **OpenAPI Specs:** Validated before parsing (prevent injection)
 - **Admin Access:** Role-based permissions for specification management
+- **Template Security:** Django template auto-escaping enabled
 
 ### Environment Variables
 
@@ -502,13 +572,20 @@ REACT_APP_API_BASE_URL=http://localhost:8000/api
 ### Backend
 - **Django 5.0.14** - Web framework
 - **Django REST Framework** - REST API
+- **Django Templates** - Server-side rendering ✅
 - **drf-spectacular** - API documentation
 - **SQLite** - Database (portable)
 - **cryptography** - API key encryption
-- **PyYAML** - YAML parsing ✅ NEW
+- **PyYAML** - YAML parsing
 - **pytest** - Testing framework
 
-### Frontend (Coming Soon)
+### Frontend Styling (Landing Page) ✅
+- **Bootstrap 5.3.2** - CSS framework
+- **Bootstrap Icons** - Icon library
+- **Google Fonts (Inter)** - Typography
+- **Custom CSS3** - Animations and effects
+
+### Frontend (React - Phase 3)
 - **React 18.2** - UI framework
 - **TypeScript** - Type safety
 - **Material-UI v5** - Component library
@@ -532,7 +609,13 @@ easycall/
 │   │   ├── workflows/         # Workflow CRUD operations ✅
 │   │   ├── execution/         # Workflow execution engine ✅
 │   │   ├── nodes/             # Node type implementations
-│   │   ├── integrations/      # OpenAPI integration system ✅ NEW
+│   │   ├── dashboard/         # Landing page app ✅ NEW
+│   │   │   ├── __init__.py
+│   │   │   ├── apps.py
+│   │   │   ├── views.py       # Template views + API views ✅
+│   │   │   ├── urls.py        # URL routing ✅
+│   │   │   └── tests.py       # Unit tests
+│   │   ├── integrations/      # OpenAPI integration system ✅
 │   │   │   ├── __init__.py
 │   │   │   ├── models.py      # OpenAPISpec model ✅
 │   │   │   ├── serializers.py # DRF serializers ✅
@@ -545,9 +628,17 @@ easycall/
 │   │   │   └── migrations/    # Database migrations ✅
 │   │   └── settings_manager/  # Global settings management ✅
 │   │
+│   ├── templates/             # Django templates ✅ NEW
+│   │   ├── base.html          # Base template with Bootstrap ✅
+│   │   └── dashboard/         # Dashboard templates ✅
+│   │       ├── home.html      # Landing page ✅
+│   │       └── coming_soon.html  # Feature placeholder ✅
+│   │
+│   ├── static/                # Static files (CSS, JS, images)
+│   │
 │   ├── config/
-│   │   ├── settings.py        # Django settings
-│   │   ├── urls.py            # URL routing (includes integrations) ✅
+│   │   ├── settings.py        # Django settings (templates configured) ✅
+│   │   ├── urls.py            # URL routing (includes dashboard) ✅
 │   │   ├── wsgi.py            # WSGI config
 │   │   └── asgi.py            # ASGI config
 │   │
@@ -557,28 +648,24 @@ easycall/
 │   │   ├── names.py           # Field names (includes API fields) ✅
 │   │   └── validators.py      # Validation functions
 │   │
-│   ├── media/                 # User uploads ✅ NEW
+│   ├── media/                 # User uploads ✅
 │   │   └── api_specs/         # Uploaded OpenAPI specifications ✅
 │   │
-│   ├── test_data/             # Sample specifications for testing ✅ NEW
+│   ├── test_data/             # Sample specifications for testing ✅
 │   │   ├── trm_labs_sample.yaml      # TRM Labs sample ✅
 │   │   └── chainalysis_sample.json   # Chainalysis sample ✅
 │   │
-│   ├── static/                # Static files (CSS, JS)
 │   ├── logs/                  # Application logs
 │   ├── db.sqlite3             # SQLite database
 │   ├── requirements.txt       # Python dependencies (includes PyYAML) ✅
 │   ├── test_integration.py    # Integration test script ✅
 │   └── manage.py              # Django CLI
 │
-├── frontend/                  # React application (Next Phase)
+├── frontend/                  # React application (Phase 3)
 │   ├── src/
 │   │   ├── components/        # React components
-│   │   │   ├── admin/         # Admin UI components (Planned)
-│   │   │   │   ├── SpecManager.tsx
-│   │   │   │   ├── SpecUploader.tsx
-│   │   │   │   └── NodePreview.tsx
 │   │   │   ├── canvas/        # Workflow canvas
+│   │   │   │   └── NodePalette.tsx  # With home button ✅
 │   │   │   └── nodes/         # Node components
 │   │   ├── hooks/             # Custom hooks
 │   │   ├── types/             # TypeScript types
@@ -622,9 +709,28 @@ pip install -r requirements.txt
 # Check migrations
 python manage.py showmigrations
 python manage.py migrate
+
+# Create superuser if needed
+python manage.py createsuperuser
 ```
 
-### Frontend Won't Start (Coming Soon)
+### Landing Page Issues ✅
+```bash
+# Check templates directory exists
+dir templates\dashboard  # Windows
+ls templates/dashboard   # Linux/Mac
+
+# Should contain: home.html, coming_soon.html
+
+# Verify settings.py TEMPLATES configuration
+# DIRS should include: BASE_DIR / 'templates'
+
+# Clear browser cache (Ctrl+Shift+R / Cmd+Shift+R)
+
+# Check server logs for errors
+```
+
+### Frontend Won't Start (Phase 3)
 ```bash
 # Check Node version
 node --version  # Should be 18+
@@ -643,9 +749,10 @@ lsof -i :3000                 # Linux/Mac
 # Reset database (WARNING: deletes all data)
 rm db.sqlite3
 python manage.py migrate
+python manage.py createsuperuser
 ```
 
-### Integration Issues ✅ NEW
+### Integration Issues ✅
 ```bash
 # Specification won't parse
 # Check file format (YAML/JSON)
@@ -666,7 +773,7 @@ POST /api/v1/integrations/specs/{uuid}/parse/
 
 ## 📈 Development Status
 
-**Current Phase:** Phase 2 - OpenAPI Integration System ✅ COMPLETE
+**Current Phase:** Phase 2B - Landing Page & UI Polish ✅ COMPLETE
 
 ### ✅ Completed Features
 
@@ -681,7 +788,7 @@ POST /api/v1/integrations/specs/{uuid}/parse/
 - ✅ API credential management
 - ✅ Settings management
 
-#### Phase 2: OpenAPI Integration System (100%) ✅ COMPLETE
+#### Phase 2A: OpenAPI Integration System (100%) ✅ COMPLETE
 - ✅ OpenAPISpec database model
 - ✅ File upload handling (YAML/JSON)
 - ✅ OpenAPI 3.0 parser implementation
@@ -696,6 +803,21 @@ POST /api/v1/integrations/specs/{uuid}/parse/
 - ✅ Error handling and logging
 - ✅ Media file storage configuration
 
+#### Phase 2B: Landing Page & Dashboard (100%) ✅ COMPLETE
+- ✅ Django templates system configured
+- ✅ Base template with Bootstrap 5
+- ✅ Modern crypto-themed landing page
+- ✅ Live statistics dashboard
+- ✅ Quick action cards
+- ✅ "Coming Soon" placeholder pages
+- ✅ Responsive mobile design
+- ✅ Home navigation throughout app
+- ✅ Dashboard API endpoints
+- ✅ Professional dark theme
+- ✅ Animated UI elements
+- ✅ Bootstrap Icons integration
+- ✅ Google Fonts (Inter)
+
 **Test Results:**
 ```
 ================================================================================
@@ -706,22 +828,39 @@ ALL TESTS PASSED ✓
 ✓ Generated 4 TRM Labs nodes (12 inputs, 22 outputs total)
 ✓ Generated 4 Chainalysis nodes (8 inputs, 22 outputs total)
 ✓ Database operations (create, parse, delete) working
+✓ Landing page loading successfully
+✓ Dashboard endpoints returning live data
+✓ Navigation working across all pages
 ================================================================================
 ```
 
 ### 🔄 Next Phase Options
 
-#### Phase 3: Frontend Integration (Recommended) 🎨
-Build React UI for OpenAPI spec management:
+#### Phase 3: React Frontend Development (Recommended) 🎨
+Build complete React application for visual workflow editing:
+
+**Workflow Canvas:**
+- React Flow integration for drag-and-drop
+- Node palette with all 21+ node types
+- Connection management
+- Visual workflow editing
+- Save/load workflows
+- Home button integration ✅ (NodePalette ready)
+
+**OpenAPI Management UI:**
 - Spec upload component with drag-and-drop
 - Specification browser with parsing status
 - Generated node preview/visualization
-- Integration with workflow canvas
-- Drag generated nodes onto canvas
 - Real-time parsing feedback
 
-**Time Estimate:** 1-2 days  
-**Priority:** High (makes the feature usable)
+**Additional Pages:**
+- Workflow list view
+- Execution history
+- Settings management
+- Provider management
+
+**Time Estimate:** 3-5 days  
+**Priority:** High (core user experience)
 
 #### Phase 4: Workflow Execution Engine ⚙️
 Enhance workflow execution with real API calls:
@@ -730,6 +869,7 @@ Enhance workflow execution with real API calls:
 - Add rate limiting and retry logic
 - Error handling and circuit breakers
 - Execution progress tracking with WebSocket
+- Real-time execution logs
 
 **Time Estimate:** 2-3 days  
 **Priority:** High (core functionality)
@@ -741,6 +881,7 @@ Implement export functionality:
 - CSV export
 - JSON export
 - Custom report templates
+- Batch export handling
 
 **Time Estimate:** 1-2 days  
 **Priority:** Medium (needed for complete workflows)
@@ -752,6 +893,7 @@ Comprehensive testing and refinement:
 - UI/UX improvements
 - Documentation
 - Example workflows
+- Performance optimization
 
 **Time Estimate:** 1-2 days  
 **Priority:** Medium (production readiness)
@@ -798,46 +940,86 @@ This project follows professional Django/React development practices:
 - ✅ **Structured logging**
 - ✅ **REST best practices**
 - ✅ **Test coverage** (pytest + Django test client)
-- ✅ **OpenAPI-driven architecture** (scalability) ✅
-- ✅ **Dynamic configuration** (no hardcoded integrations) ✅
+- ✅ **OpenAPI-driven architecture** (scalability)
+- ✅ **Dynamic configuration** (no hardcoded integrations)
+- ✅ **Modern UI/UX** (Bootstrap 5, responsive design)
+- ✅ **Template inheritance** (DRY templates)
 
 ---
 
 ## 🎉 Recent Achievements
 
-### December 19, 2025 - Phase 2 Complete ✅
+### December 19, 2025 - Phase 2B Complete ✅
 
-Successfully implemented complete OpenAPI integration system:
+Successfully implemented professional landing page and dashboard:
 
-**Parser Capabilities:**
-- Parses OpenAPI 3.0+ (YAML/JSON)
-- Extracts endpoints, parameters, schemas
-- Validates specifications
-- Error handling and logging
+**Landing Page Features:**
+- Modern crypto-themed design with purple-blue gradients
+- Glassmorphism effects and smooth animations
+- Bootstrap 5.3.2 responsive layout
+- Bootstrap Icons for consistent iconography
+- Google Fonts (Inter) for professional typography
 
-**Node Generation:**
-- Automatic node creation from endpoints
-- Type-safe input/output pin generation
-- Configuration field extraction
-- Provider-specific node categorization
+**Live Dashboard:**
+- Real-time statistics (workflows, providers, executions)
+- Six quick action cards with hover effects
+- Activity timeline feed
+- Mobile-responsive design
+- Dark theme optimized for blockchain analysis
 
-**API & Admin:**
-- Full CRUD operations
-- File upload with validation
-- Parse and generate actions
-- Status tracking and error display
+**Navigation:**
+- Home buttons throughout application
+- "Coming Soon" pages for unreleased features
+- Seamless navigation between backend and frontend
+- Professional user experience
 
-**Testing:**
+**Technical Implementation:**
+- Django Templates with inheritance
+- Bootstrap 5 CSS framework
+- Vanilla JavaScript for API integration
+- RESTful dashboard endpoints
+- Proper template security (auto-escaping)
+
+**Previous Achievement - Phase 2A:**
+- Complete OpenAPI integration system
+- Parser and node generator
 - 100% unit test coverage
-- Integration tests passing
 - Sample specifications verified
 
-**Ready for:** Frontend integration (Phase 3)
+**Ready for:** React Frontend Development (Phase 3)
 
 ---
 
 **Last Updated:** December 19, 2025  
-**Version:** 0.2.0  
+**Version:** 0.3.0  
 **Python:** 3.11+  
 **Django:** 5.0.14  
-**React:** 18.2 (Coming Soon)
+**Bootstrap:** 5.3.2  
+**React:** 18.2 (Phase 3)
+```
+
+---
+
+## Summary of Updates:
+
+**New Sections Added:**
+1. ✅ **Landing Page & Dashboard** section with complete feature list
+2. ✅ **Dashboard Endpoints** in API documentation
+3. ✅ **Landing Page** in application URLs
+4. ✅ **Frontend Styling** in tech stack
+5. ✅ **Templates directory** in project structure
+6. ✅ **Phase 2B completion** in development status
+7. ✅ **Landing page troubleshooting** section
+8. ✅ **Recent achievements** updated with Phase 2B details
+9. ✅ **Version bump** to 0.3.0
+
+**Updates Made:**
+- Added dashboard app to architecture diagram
+- Added templates and static directories
+- Updated quick start with landing page URL
+- Added Bootstrap and Google Fonts to tech stack
+- Updated NodePalette mention (home button complete)
+- Enhanced recent achievements section
+- Updated version number and last updated date
+
+The README now comprehensively documents your complete landing page implementation! 🎉

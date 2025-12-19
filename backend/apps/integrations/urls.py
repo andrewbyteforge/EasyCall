@@ -31,4 +31,5 @@ app_name = "integrations"
 
 urlpatterns = [
     path("", include(router.urls)),
+    
 ]

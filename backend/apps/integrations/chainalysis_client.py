@@ -6,6 +6,7 @@ Base URL: https://iapi.chainalysis.com
 Authentication: Token header with API key
 """
 import logging
+import time
 import requests
 from typing import Optional
 from django.conf import settings
@@ -27,7 +28,7 @@ class ChainalysisAPIError(Exception):
         503: "Service unavailable"
     }
 
-    def __init__(self, status_code: int, message: str):
+    def __init__(self, status_code: int,  message: str):
         self.status_code = status_code
         self.message = message
         self.user_message = self.ERROR_CODES.get(status_code, f"API error {status_code}")
@@ -54,9 +55,12 @@ class ChainalysisClient:
         'dogecoin': 'DOGE',
         'tron': 'TRX',
         'solana': 'SOL',
+        'binance_smart_chain': 'BSC',
+        'polygon': 'MATIC',
+        'ripple': 'XRP',
     }
 
-    def __init__(self, api_key: str = None, base_url: str = None):
+    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         """
         Initialize client with API key from settings or override.
 
@@ -98,7 +102,7 @@ class ChainalysisClient:
         self,
         method: str,
         path: str,
-        params: dict = None,
+        params: Optional[dict] = None,
         timeout: int = 30
     ) -> dict:
         """
@@ -226,9 +230,9 @@ class ChainalysisClient:
         address: str,
         asset: str = "bitcoin",
         output_asset: str = "NATIVE",
-        direction: str = None,
-        limit: int = None,
-        offset: int = None
+        direction: Optional[str] = None,
+        limit: Optional[str] = None,
+        offset: Optional[str] = None
     ) -> dict:
         """
         Get counterparty addresses for a cluster.
@@ -364,7 +368,6 @@ class ChainalysisClient:
                 "response_time": 0.5
             }
         """
-        import time
 
         try:
             start = time.time()

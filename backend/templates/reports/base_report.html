@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }}</title>
+    <style>
+        /* ===================================================================
+           BLOCKCHAIN INTELLIGENCE REPORT STYLESHEET
+           Modern CSS for WeasyPrint rendering
+           =================================================================== */
+        
+        /* ------------------------------------------------------------------- 
+           Page Setup
+           ------------------------------------------------------------------- */
+        @page {
+            size: A4;
+            margin: 2cm 1.5cm;
+            
+            @top-center {
+                content: "{{ report_title }}";
+                font-family: 'Arial', sans-serif;
+                font-size: 10pt;
+                color: #666;
+            }
+            
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: 'Arial', sans-serif;
+                font-size: 9pt;
+                color: #666;
+            }
+            
+            @bottom-left {
+                content: "Report ID: {{ report_id }}";
+                font-family: 'Arial', sans-serif;
+                font-size: 9pt;
+                color: #666;
+            }
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Base Styles
+           ------------------------------------------------------------------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            font-size: 10pt;
+            line-height: 1.6;
+            color: #333;
+            background: #fff;
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Typography
+           ------------------------------------------------------------------- */
+        h1 {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-bottom: 0.5em;
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 0.3em;
+        }
+        
+        h2 {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #0066cc;
+            margin-top: 1.5em;
+            margin-bottom: 0.75em;
+            padding-left: 0.5em;
+            border-left: 4px solid #0066cc;
+        }
+        
+        h3 {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #333;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+        
+        p {
+            margin-bottom: 0.75em;
+            text-align: justify;
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Cover Page
+           ------------------------------------------------------------------- */
+        .cover-page {
+            text-align: center;
+            page-break-after: always;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 24cm;
+        }
+        
+        .cover-title {
+            font-size: 32pt;
+            font-weight: bold;
+            color: #0066cc;
+            margin-bottom: 0.5em;
+            text-transform: uppercase;
+            letter-spacing: 2pt;
+        }
+        
+        .cover-subtitle {
+            font-size: 16pt;
+            color: #666;
+            margin-bottom: 3em;
+        }
+        
+        .cover-classification {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #cc0000;
+            border: 3px solid #cc0000;
+            padding: 0.5em 1em;
+            display: inline-block;
+            margin: 2em auto;
+        }
+        
+        .cover-metadata {
+            margin-top: 4em;
+            font-size: 11pt;
+            color: #666;
+        }
+        
+        .cover-metadata p {
+            margin: 0.5em 0;
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Executive Summary
+           ------------------------------------------------------------------- */
+        .executive-summary {
+            background: #f0f7ff;
+            border-left: 5px solid #0066cc;
+            padding: 1.5em;
+            margin: 2em 0;
+            page-break-inside: avoid;
+        }
+        
+        .executive-summary h2 {
+            border: none;
+            padding-left: 0;
+            margin-top: 0;
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Statistics Panel
+           ------------------------------------------------------------------- */
+        .stats-panel {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 1.5em;
+            margin: 2em 0;
+            page-break-inside: avoid;
+        }
+        
+        .stat-box {
+            text-align: center;
+            flex: 1;
+            padding: 0 1em;
+        }
+        
+        .stat-value {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #0066cc;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 10pt;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5pt;
+            margin-top: 0.5em;
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Data Sections
+           ------------------------------------------------------------------- */
+        .section {
+            margin: 2em 0;
+            page-break-inside: avoid;
+        }
+        
+        .section-header {
+            background: #e9ecef;
+            padding: 0.75em 1em;
+            border-radius: 4px 4px 0 0;
+            margin-bottom: 0;
+        }
+        
+        .section-content {
+            border: 1px solid #e9ecef;
+            border-top: none;
+            padding: 1.5em;
+            border-radius: 0 0 4px 4px;
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Tables
+           ------------------------------------------------------------------- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+            font-size: 9pt;
+            page-break-inside: avoid;
+        }
+        
+        thead {
+            background: #0066cc;
+            color: #fff;
+        }
+        
+        th {
+            padding: 0.75em;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #0052a3;
+        }
+        
+        td {
+            padding: 0.75em;
+            border: 1px solid #dee2e6;
+        }
+        
+        tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        tbody tr:hover {
+            background: #e9ecef;
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Key-Value Pairs
+           ------------------------------------------------------------------- */
+        .key-value-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 0.5em;
+            margin: 1em 0;
+        }
+        
+        .key {
+            font-weight: bold;
+            color: #555;
+            padding: 0.5em;
+            background: #f8f9fa;
+        }
+        
+        .value {
+            padding: 0.5em;
+            border-left: 2px solid #0066cc;
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Alerts and Badges
+           ------------------------------------------------------------------- */
+        .alert {
+            padding: 1em;
+            margin: 1em 0;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+        
+        .alert-danger {
+            background: #ffe6e6;
+            border-left-color: #cc0000;
+            color: #990000;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            border-left-color: #ff9900;
+            color: #996600;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            border-left-color: #0c5460;
+            color: #0c5460;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 8pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 3px;
+            margin-right: 0.5em;
+        }
+        
+        .badge-high-risk {
+            background: #cc0000;
+            color: #fff;
+        }
+        
+        .badge-medium-risk {
+            background: #ff9900;
+            color: #fff;
+        }
+        
+        .badge-low-risk {
+            background: #28a745;
+            color: #fff;
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Lists
+           ------------------------------------------------------------------- */
+        ul, ol {
+            margin-left: 2em;
+            margin-bottom: 1em;
+        }
+        
+        li {
+            margin-bottom: 0.5em;
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Code and Pre-formatted Text
+           ------------------------------------------------------------------- */
+        code {
+            background: #f8f9fa;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 1em;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 8pt;
+            line-height: 1.4;
+        }
+        
+        /* ------------------------------------------------------------------- 
+           Footer
+           ------------------------------------------------------------------- */
+        .report-footer {
+            margin-top: 4em;
+            padding-top: 1em;
+            border-top: 2px solid #dee2e6;
+            font-size: 8pt;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- ===================================================================
+         COVER PAGE
+         =================================================================== -->
+    <div class="cover-page">
+        <div class="cover-classification">{{ classification }}</div>
+        <h1 class="cover-title">{{ report_title }}</h1>
+        <p class="cover-subtitle">{{ report_subtitle }}</p>
+        
+        <div class="cover-metadata">
+            <p><strong>Workflow:</strong> {{ workflow_name }}</p>
+            <p><strong>Generated:</strong> {{ generated_at }}</p>
+            <p><strong>Report ID:</strong> {{ report_id }}</p>
+            <p><strong>Data Sources:</strong> {{ data_sources|join:", " }}</p>
+        </div>
+    </div>
+    
+    <!-- ===================================================================
+         EXECUTIVE SUMMARY
+         =================================================================== -->
+    {% if executive_summary %}
+    <div class="executive-summary">
+        <h2>Executive Summary</h2>
+        <p>{{ executive_summary }}</p>
+    </div>
+    {% endif %}
+    
+    <!-- ===================================================================
+         STATISTICS PANEL
+         =================================================================== -->
+    {% if total_addresses or total_transactions %}
+    <div class="stats-panel">
+        {% if total_addresses %}
+        <div class="stat-box">
+            <span class="stat-value">{{ total_addresses }}</span>
+            <span class="stat-label">Addresses Analyzed</span>
+        </div>
+        {% endif %}
+        
+        {% if total_transactions %}
+        <div class="stat-box">
+            <span class="stat-value">{{ total_transactions }}</span>
+            <span class="stat-label">Transactions Examined</span>
+        </div>
+        {% endif %}
+        
+        <div class="stat-box">
+            <span class="stat-value">{{ sections|length }}</span>
+            <span class="stat-label">Analysis Sections</span>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- ===================================================================
+         REPORT SECTIONS
+         =================================================================== -->
+    {% for section in sections %}
+    <div class="section">
+        <div class="section-header">
+            <h2>{{ section.title }}</h2>
+        </div>
+        <div class="section-content">
+            {% if section.type == 'cluster_info' %}
+                <!-- Cluster Information -->
+                <div class="key-value-grid">
+                    {% if section.data.cluster_name %}
+                    <div class="key">Cluster Name:</div>
+                    <div class="value">{{ section.data.cluster_name }}</div>
+                    {% endif %}
+                    
+                    {% if section.data.category %}
+                    <div class="key">Category:</div>
+                    <div class="value">{{ section.data.category }}</div>
+                    {% endif %}
+                    
+                    {% if section.data.cluster_address %}
+                    <div class="key">Root Address:</div>
+                    <div class="value"><code>{{ section.data.cluster_address }}</code></div>
+                    {% endif %}
+                </div>
+                
+            {% elif section.type == 'cluster_balance' %}
+                <!-- Balance Summary -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Current Balance</td>
+                            <td>{{ section.data.balance|default:"0" }}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Sent</td>
+                            <td>{{ section.data.total_sent|default:"0" }}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Received</td>
+                            <td>{{ section.data.total_received|default:"0" }}</td>
+                        </tr>
+                        <tr>
+                            <td>Transfer Count</td>
+                            <td>{{ section.data.transfer_count|default:"0" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+            {% elif section.type == 'exposure' %}
+                <!-- Exposure Data -->
+                {% if section.data.high_risk_flags %}
+                <div class="alert alert-danger">
+                    <strong>⚠️ High Risk Detected:</strong>
+                    {% for flag in section.data.high_risk_flags %}
+                        <span class="badge badge-high-risk">{{ flag.category }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if section.data.direct_exposure %}
+                <h3>Direct Exposure</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Value</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exposure in section.data.direct_exposure %}
+                        <tr>
+                            <td>{{ exposure.category }}</td>
+                            <td>{{ exposure.value }}</td>
+                            <td>{{ exposure.percentage }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                
+            {% elif section.type == 'table' %}
+                <!-- Generic Table -->
+                {% if section.data.transfers %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Amount (USD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transfer in section.data.transfers %}
+                        <tr>
+                            <td>{{ transfer.transactionTimestamp|slice:":10" }}</td>
+                            <td><code>{{ transfer.sender.address|slice:":8" }}...</code></td>
+                            <td><code>{{ transfer.receiver.address|slice:":8" }}...</code></td>
+                            <td>${{ transfer.amountUsd|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                
+            {% else %}
+                <!-- Generic Data Display -->
+                <pre>{{ section.data|pprint }}</pre>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    
+    <!-- ===================================================================
+         FOOTER
+         =================================================================== -->
+    <div class="report-footer">
+        <p>This report was automatically generated by EasyCall Blockchain Intelligence Workflow Builder</p>
+        <p>Report ID: {{ report_id }} | Generated: {{ generated_at }} | {{ classification }}</p>
+    </div>
+</body>
+</html>

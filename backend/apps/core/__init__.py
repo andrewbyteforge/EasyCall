@@ -14,4 +14,6 @@
 Core application for the EasyCall project.
 """
 
-default_app_config = "apps.core.apps.CoreConfig"
+INSTALLED_APPS = [
+    "apps.core.apps.CoreConfig",  
+]

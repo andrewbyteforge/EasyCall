@@ -1,7 +1,9 @@
-"""
-Dashboard Views
-Provides statistics and quick actions for the landing page.
-"""
+# =============================================================================
+# FILE: backend/apps/dashboard/views.py (COMPLETE UPDATED VERSION)
+# =============================================================================
+# Dashboard Views - Provides statistics and quick actions for the landing page
+# UPDATED: Changed Add API Provider route to Django backend upload page
+# =============================================================================
 
 import logging
 from typing import Any, Dict, List
@@ -40,6 +42,38 @@ def home(request):
         Rendered template response
     """
     return render(request, 'dashboard/home.html')
+
+
+def upload_provider(request):
+    """
+    Upload API provider page.
+    
+    Renders the OpenAPI specification upload page with matching styling.
+    
+    Args:
+        request: HTTP request object
+        
+    Returns:
+        Rendered template response
+    """
+    return render(request, 'dashboard/upload_provider.html')
+
+
+def coming_soon(request, feature):
+    """
+    Coming soon placeholder page.
+    
+    Args:
+        request: HTTP request object
+        feature: Feature name to display
+        
+    Returns:
+        Rendered template response
+    """
+    context = {
+        'feature': feature.replace('_', ' ').title()
+    }
+    return render(request, 'dashboard/coming_soon.html', context)
 
 
 # ============================================================================
@@ -211,6 +245,9 @@ def quick_actions(request: Request) -> Response:
         
     Returns:
         Response containing quick action definitions
+    
+    UPDATED: Changed "Add API Provider" route from React frontend
+    to Django backend upload page at /upload-provider/
     """
     try:
         logger.info("Fetching quick actions")
@@ -221,7 +258,7 @@ def quick_actions(request: Request) -> Response:
                 "label": "Add API Provider",
                 "description": "Upload OpenAPI specification to integrate new blockchain intelligence APIs",
                 "icon": "cloud_upload",
-                "route": "http://localhost:3000/integrations/upload",  # React frontend
+                "route": "/upload-provider/",  # ← CHANGED: Now points to Django backend
                 "color": "primary",
                 "order": 1
             },
@@ -272,7 +309,6 @@ def quick_actions(request: Request) -> Response:
             }
         ]
 
-        
         response_data = {
             "actions": actions
         }
@@ -286,8 +322,6 @@ def quick_actions(request: Request) -> Response:
             {"error": "Failed to fetch quick actions"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
-
 
 
 # ============================================================================
@@ -412,21 +446,3 @@ def recent_activity(request: Request) -> Response:
             {"error": "Failed to fetch recent activity"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-        
-def coming_soon(request, feature):  # ADD THIS FUNCTION
-    """
-    Coming soon placeholder page.
-    
-    Args:
-        request: HTTP request object
-        feature: Feature name to display
-        
-    Returns:
-        Rendered template response
-    """
-    context = {
-        'feature': feature.replace('_', ' ').title()
-    }
-    return render(request, 'dashboard/coming_soon.html', context)
-
-        

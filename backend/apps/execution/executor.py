@@ -14,14 +14,24 @@ import logging
 from collections import defaultdict, deque
 from django.db import transaction
 
-from nodes.node_registry import get_node_class
-from apps.core.exceptions import NodeExecutionError  # Need to add this exception
-
 logger = logging.getLogger(__name__)
 
 # Default output directory for exports - use user's Desktop
 DEFAULT_OUTPUT_DIR = Path.home() / "Desktop"
 
+
+# =============================================================================
+# EXCEPTIONS
+# =============================================================================
+
+class NodeExecutionError(Exception):
+    """Exception raised when node execution fails."""
+    pass
+
+
+# =============================================================================
+# WORKFLOW EXECUTOR
+# =============================================================================
 
 class WorkflowExecutor:
     """
@@ -313,9 +323,356 @@ class WorkflowExecutor:
                 self._log(f"     {key}: {display}")
             return {'logged': True, 'data': inputs}
 
+
+        # ═══════════════════════════════════════════════════════════════
+        # DATABASE-GENERATED NODES (NEW)
+        # ═══════════════════════════════════════════════════════════════
+        
+        # Check if this is a database-generated node
+        if self._is_database_node(node_type):
+            return self._execute_database_node(node_type, node_id, inputs, config)
+        
         # Unknown node type - return empty
         self._log(f"  ⚠️ Unknown node type: {node_type}")
         return {}
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # DATABASE NODE EXECUTION METHODS
+    # ═══════════════════════════════════════════════════════════════════════
+
+    def _is_database_node(self, node_type: str) -> bool:
+        """
+        Check if node_type is a database-generated node.
+        
+        Database nodes follow the pattern: {provider}_{operation_id}
+        Examples:
+            - trm_labs_get_attribution
+            - chainalysis_get_cluster_info
+            - elliptic_get_risk_score
+        
+        Args:
+            node_type: The node type identifier
+            
+        Returns:
+            True if this is a database node, False otherwise
+        """
+        # Known database node providers
+        database_providers = [
+            'trm_labs',
+            'chainalysis',
+            'elliptic',
+            'chainalysis_reactor',
+            'trm',
+        ]
+        
+        # Check if node_type starts with any known provider prefix
+        for provider in database_providers:
+            if node_type.startswith(f"{provider}_"):
+                return True
+        
+        return False
+
+    def _execute_database_node(
+        self,
+        node_type: str,
+        node_id: str,
+        inputs: dict,
+        config: dict
+    ) -> dict:
+        """
+        Execute a database-generated node.
+        
+        Process:
+        1. Look up node definition (frozen config first, then database)
+        2. Build HTTP request from definition
+        3. Execute API call
+        4. Map response to outputs
+        
+        Args:
+            node_type: Node type identifier
+            node_id: Unique node instance ID
+            inputs: Input values from connected nodes
+            config: Configuration values
+            
+        Returns:
+            Dictionary of output values
+            
+        Raises:
+            NodeExecutionError: If node definition not found or execution fails
+        """
+        
+        self._log(f"  [DATABASE] Executing database node: {node_type}")
+        
+        # Step 1: Get node definition
+        node_def = self._lookup_node_definition(node_type)
+        
+        if not node_def:
+            raise NodeExecutionError(
+                f"Node definition not found for: {node_type}. "
+                f"This node may have been deleted from the provider system."
+            )
+        
+        self._log(f"  [DATABASE] Found definition for {node_def.get('name', node_type)}")
+        
+        # Step 2: Build API request
+        try:
+            request_config = self._build_api_request(node_def, inputs, config)
+        except Exception as e:
+            raise NodeExecutionError(f"Failed to build API request: {str(e)}")
+        
+        # Step 3: Execute API call
+        try:
+            from apps.execution.api_executor import GenericAPIExecutor
+            
+            api_executor = GenericAPIExecutor()
+            response = api_executor.execute(request_config)
+            
+            self._log(f"  [DATABASE] API call successful")
+            
+        except Exception as e:
+            raise NodeExecutionError(f"API call failed: {str(e)}")
+        
+        # Step 4: Map response to outputs
+        try:
+            outputs = self._map_api_response(response, node_def)
+            return outputs
+        except Exception as e:
+            raise NodeExecutionError(f"Failed to map response: {str(e)}")
+
+    def _lookup_node_definition(self, node_type: str) -> Optional[dict]:
+        """
+        Look up node definition from frozen config or database.
+        
+        Priority:
+        1. Frozen configuration (from workflow.canvas_data['_frozen_nodes'])
+        2. Current database definition (from OpenAPISpec)
+        
+        Frozen configs ensure that saved workflows continue to work even if
+        the provider is updated or deleted.
+        
+        Args:
+            node_type: Node type identifier
+            
+        Returns:
+            Node definition dictionary, or None if not found
+        """
+        # Check frozen config first (from workflow save)
+        canvas_data = self.workflow.canvas_data
+        if isinstance(canvas_data, dict):
+            frozen_nodes = canvas_data.get('_frozen_nodes', {})
+            
+            if node_type in frozen_nodes:
+                self._log(f"  [FROZEN] Using frozen definition for {node_type}")
+                return frozen_nodes[node_type]
+        
+        # Fall back to current database definition
+        from apps.integrations.models import OpenAPISpec
+        from apps.integrations.node_generator import NodeGenerator
+        
+        # Extract provider from node_type
+        # Examples: "trm_labs_get_attribution" -> "trm_labs"
+        #           "chainalysis_get_cluster_info" -> "chainalysis"
+        parts = node_type.split('_')
+        if len(parts) >= 2:
+            # Handle multi-word providers like "trm_labs"
+            provider = '_'.join(parts[:2])
+        else:
+            provider = parts[0] if parts else ''
+        
+        # Find active spec for this provider
+        spec = OpenAPISpec.objects.filter(
+            provider=provider,
+            is_active=True,
+            is_parsed=True
+        ).first()
+        
+        if not spec:
+            # Try without underscore (e.g., "trmlabs" instead of "trm_labs")
+            provider_no_underscore = provider.replace('_', '')
+            spec = OpenAPISpec.objects.filter(
+                provider=provider_no_underscore,
+                is_active=True,
+                is_parsed=True
+            ).first()
+        
+        if not spec:
+            self._log(f"  [DATABASE] No active spec found for provider: {provider}")
+            return None
+        
+        # Generate nodes and find matching one
+        generator = NodeGenerator()
+        endpoints = spec.parsed_data.get('endpoints', [])
+        
+        if not endpoints:
+            self._log(f"  [DATABASE] No endpoints in spec for: {provider}")
+            return None
+        
+        nodes = generator.generate_nodes(
+            endpoints=endpoints,
+            provider=provider
+        )
+        
+        for node in nodes:
+            if node['type'] == node_type:
+                self._log(f"  [DATABASE] Using current definition for {node_type}")
+                return node
+        
+        self._log(f"  [DATABASE] Node type {node_type} not found in generated nodes")
+        return None
+
+    def _build_api_request(
+        self,
+        node_def: dict,
+        inputs: dict,
+        config: dict
+    ) -> dict:
+        """
+        Build API request configuration from node definition and inputs.
+        
+        Args:
+            node_def: Node definition from database
+            inputs: Input values from connected nodes
+            config: Configuration values from node
+            
+        Returns:
+            Request configuration dict for GenericAPIExecutor
+        """
+        from apps.integrations.models import OpenAPISpec
+        
+        # Get endpoint info
+        endpoint_info = node_def.get('endpoint', {})
+        provider = node_def.get('provider', '')
+        
+        # Get provider spec for base URL
+        spec = OpenAPISpec.objects.filter(
+            provider=provider,
+            is_active=True,
+            is_parsed=True
+        ).first()
+        
+        if not spec:
+            raise ValueError(f"Provider spec not found: {provider}")
+        
+        # Get base URL from spec
+        base_url = spec.parsed_data.get('base_url', '')
+        if not base_url:
+            raise ValueError(f"No base URL in spec for provider: {provider}")
+        
+        # Get credentials
+        credentials = inputs.get('credentials', {})
+        
+        # Build URL
+        path = endpoint_info.get('path', '')
+        method = endpoint_info.get('method', 'GET').upper()
+        
+        # Build headers with authentication
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+        
+        # Add authentication header based on provider
+        if provider == 'chainalysis':
+            api_key = credentials.get('api_key', '')
+            if api_key:
+                headers['Token'] = api_key
+        elif provider == 'trm_labs' or provider == 'trm':
+            api_key = credentials.get('api_key', '')
+            # TRM uses Basic auth with API key as username
+            if api_key:
+                import base64
+                auth_str = base64.b64encode(f"{api_key}:".encode()).decode()
+                headers['Authorization'] = f'Basic {auth_str}'
+        
+        # Map inputs to parameters
+        params = {}
+        path_params = {}
+        json_body = None
+        
+        # Get input definitions from node
+        node_inputs = node_def.get('inputs', [])
+        
+        for input_def in node_inputs:
+            input_id = input_def.get('id')
+            if input_id == 'credentials':
+                continue  # Already handled
+            
+            # Get value from inputs
+            value = inputs.get(input_id)
+            if value is None:
+                continue
+            
+            # Determine parameter location (path, query, body)
+            param_in = input_def.get('in', 'query')
+            
+            if param_in == 'path':
+                path_params[input_id] = value
+            elif param_in == 'query':
+                params[input_id] = value
+            elif param_in == 'body':
+                if json_body is None:
+                    json_body = {}
+                json_body[input_id] = value
+        
+        # Substitute path parameters
+        final_path = path
+        for param_name, param_value in path_params.items():
+            final_path = final_path.replace(f"{{{param_name}}}", str(param_value))
+        
+        # Build full URL
+        url = base_url.rstrip('/') + '/' + final_path.lstrip('/')
+        
+        # Add config parameters (like asset, direction, etc.)
+        for key, value in config.items():
+            if key not in params and value is not None:
+                params[key] = value
+        
+        return {
+            'method': method,
+            'url': url,
+            'headers': headers,
+            'params': params if params else None,
+            'json': json_body,
+            'timeout': config.get('timeout', 30)
+        }
+
+    def _map_api_response(self, response: dict, node_def: dict) -> dict:
+        """
+        Map API response to node outputs.
+        
+        Args:
+            response: API response data
+            node_def: Node definition
+            
+        Returns:
+            Dictionary of output values
+        """
+        outputs = {}
+        
+        # Get output definitions
+        node_outputs = node_def.get('outputs', [])
+        
+        # If response is a simple structure, map each output
+        if isinstance(response, dict):
+            for output_def in node_outputs:
+                output_id = output_def.get('id')
+                
+                # Try to find this field in response
+                if output_id in response:
+                    outputs[output_id] = response[output_id]
+                # Try camelCase version
+                elif output_id.replace('_', '') in response:
+                    camel_case = output_id.replace('_', '')
+                    outputs[output_id] = response[camel_case]
+        
+        # If no specific outputs mapped, include whole response
+        if not outputs:
+            outputs['response'] = response
+        
+        # Also include the full response as raw_data for debugging
+        outputs['raw_response'] = response
+        
+        return outputs
 
     # ═══════════════════════════════════════════════════════════════════════
     # CHAINALYSIS API METHODS
@@ -2146,88 +2503,3 @@ class WorkflowExecutor:
                     no_deps.append(nid)
 
         return sorted_nodes
-
-def _is_database_node(self, node_type: str) -> bool:
-    """
-    Check if node_type is a database-generated node.
-    
-    Database nodes follow pattern: {provider}_{operation_id}
-    Examples: trm_labs_get_attribution, chainalysis_get_cluster_info
-    """
-    # Database nodes contain provider prefix
-    providers = ['trm_labs', 'chainalysis', 'elliptic']  # Add more as needed
-    return any(node_type.startswith(f"{provider}_") for provider in providers)
-
-
-def _execute_database_node(self, node_type: str, inputs: dict, config: dict) -> dict:
-    """
-    Execute a database-generated node.
-    
-    Steps:
-    1. Look up node definition (frozen config first, then database)
-    2. Build HTTP request from definition
-    3. Execute API call
-    4. Map response to outputs
-    """
-    # Step 1: Get node definition
-    node_def = self._lookup_node_definition(node_type)
-    
-    if not node_def:
-        raise NodeExecutionError(f"Node definition not found: {node_type}")
-    
-    # Step 2: Build API request
-    request_config = self._build_api_request(node_def, inputs, config)
-    
-    # Step 3: Execute API call
-    from apps.execution.api_executor import GenericAPIExecutor
-    api_executor = GenericAPIExecutor()
-    response = api_executor.execute(request_config)
-    
-    # Step 4: Map response to outputs
-    return self._map_api_response(response, node_def)
-
-
-def _lookup_node_definition(self, node_type: str) -> Optional[dict]:
-    """
-    Look up node definition from frozen config or database.
-    
-    Priority:
-    1. Frozen configuration (from workflow save)
-    2. Current database definition
-    """
-    # Check frozen config first (stored in workflow.canvas_data['_frozen_nodes'])
-    frozen_nodes = self.workflow.canvas_data.get('_frozen_nodes', {})
-    if node_type in frozen_nodes:
-        self._log(f"  [FROZEN] Using frozen node definition for {node_type}")
-        return frozen_nodes[node_type]
-    
-    # Fall back to database
-    from apps.integrations.models import OpenAPISpec
-    from apps.integrations.node_generator import NodeGenerator
-    
-    # Extract provider from node_type (e.g., "trm_labs_get_attribution" -> "trm_labs")
-    provider = '_'.join(node_type.split('_')[:2])  # "trm_labs"
-    
-    # Find active spec for this provider
-    spec = OpenAPISpec.objects.filter(
-        provider=provider,
-        is_active=True,
-        is_parsed=True
-    ).first()
-    
-    if not spec:
-        return None
-    
-    # Generate nodes and find matching one
-    generator = NodeGenerator()
-    nodes = generator.generate_nodes(
-        endpoints=spec.parsed_data.get('endpoints', []),
-        provider=provider
-    )
-    
-    for node in nodes:
-        if node['type'] == node_type:
-            self._log(f"  [DATABASE] Using current node definition for {node_type}")
-            return node
-    
-    return None

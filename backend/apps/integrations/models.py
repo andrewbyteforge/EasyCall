@@ -45,11 +45,11 @@ class APIProvider:
     CUSTOM = "custom"
 
 
-API_PROVIDER_CHOICES = [
-    (APIProvider.CHAINALYSIS, "Chainalysis Reactor"),
-    (APIProvider.TRM_LABS, "TRM Labs"),
-    (APIProvider.CUSTOM, "Custom Provider"),
-]
+# API_PROVIDER_CHOICES = [
+#     (APIProvider.CHAINALYSIS, "Chainalysis Reactor"),
+#     (APIProvider.TRM_LABS, "TRM Labs"),
+#     (APIProvider.CUSTOM, "Custom Provider"),
+# ]
 
 
 # =============================================================================
@@ -77,14 +77,15 @@ class OpenAPISpec(BaseModel):
     
     provider = models.CharField(
         verbose_name="API Provider",
-        max_length=50,
-        choices=API_PROVIDER_CHOICES,
+        max_length=50,        
         db_index=True,
         help_text="The API provider this specification is for",
     )
     
     name = models.CharField(
         verbose_name=get_verbose_name(FIELD_API_PROVIDER_NAME),
+        blank=True,
+        default='',
         max_length=MAX_LENGTH_NAME,
         help_text="Name for this API specification",
     )
@@ -99,6 +100,8 @@ class OpenAPISpec(BaseModel):
     
     version = models.CharField(
         verbose_name=get_verbose_name(FIELD_API_VERSION),
+        blank=True,
+        default='1.0.0',
         max_length=50,
         help_text="API version (e.g., '1.0', 'v2')",
     )

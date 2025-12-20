@@ -86,6 +86,14 @@ class OpenAPISpecViewSet(viewsets.ModelViewSet):
         
         # Create the spec
         serializer = self.get_serializer(data=request.data)
+        logger.info(
+            "Create uses serializer=%s version.required=%s version.allow_blank=%s incoming_version=%r",
+            serializer.__class__.__name__,
+            serializer.fields["version"].required if "version" in serializer.fields else None,
+            serializer.fields["version"].allow_blank if "version" in serializer.fields else None,
+            request.data.get("version"),
+        )
+
         serializer.is_valid(raise_exception=True)
         spec = serializer.save()
         

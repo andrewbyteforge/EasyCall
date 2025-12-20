@@ -58,10 +58,23 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         logger.info(f"Retrieving workflow: {workflow.name}")
         return super().retrieve(request, *args, **kwargs)
     
+    
     def update(self, request, *args, **kwargs):
-        """Update workflow."""
+        """Update workflow - capture frozen node configuration."""
         workflow = self.get_object()
         logger.info(f"Updating workflow: {workflow.name}")
+        
+        # BEFORE saving, capture frozen node definitions
+        if 'canvas_data' in request.data:
+            canvas_data = request.data['canvas_data']
+            self._capture_frozen_nodes(workflow, canvas_data)
+            # Update request data with frozen nodes
+            if hasattr(request.data, '_mutable'):
+                request.data._mutable = True  # Allow modification
+            request.data['canvas_data'] = canvas_data
+            if hasattr(request.data, '_mutable'):
+                request.data._mutable = False
+        
         return super().update(request, *args, **kwargs)
     
     def destroy(self, request, *args, **kwargs):
@@ -185,27 +198,21 @@ class WorkflowViewSet(viewsets.ModelViewSet):
                 "error": str(e),
                 "traceback": traceback.format_exc()
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-    def update(self, request, *args, **kwargs):
-        """Update workflow - capture frozen node configuration."""
-        workflow = self.get_object()
-        logger.info(f"Updating workflow: {workflow.name}")
-        
-        # BEFORE saving, capture frozen node definitions
-        if 'canvas_data' in request.data:
-            canvas_data = request.data['canvas_data']
-            self._capture_frozen_nodes(workflow, canvas_data)
-            request.data['canvas_data'] = canvas_data
-        
-        return super().update(request, *args, **kwargs)
 
+    # ═══════════════════════════════════════════════════════════════════
+    # FROZEN CONFIGURATION HELPERS
+    # ═══════════════════════════════════════════════════════════════════
 
     def _capture_frozen_nodes(self, workflow, canvas_data: dict):
         """
         Capture frozen node definitions for database nodes.
         
         Stores node definitions in canvas_data['_frozen_nodes'] to prevent
-        breaking changes when providers are updated.
+        breaking changes when providers are updated or deleted.
+        
+        Args:
+            workflow: Workflow instance
+            canvas_data: Canvas data dictionary (modified in place)
         """
         from apps.integrations.models import OpenAPISpec
         from apps.integrations.node_generator import NodeGenerator
@@ -222,7 +229,97 @@ class WorkflowViewSet(viewsets.ModelViewSet):
                 node_def = self._get_current_node_definition(node_type)
                 if node_def:
                     frozen_nodes[node_type] = node_def
+                    logger.debug(f"Captured frozen definition for {node_type}")
         
-        # Store frozen definitions
+        # Store frozen definitions in canvas_data
         canvas_data['_frozen_nodes'] = frozen_nodes
         logger.info(f"Captured {len(frozen_nodes)} frozen node definitions")
+
+    def _is_database_node_type(self, node_type: str) -> bool:
+        """
+        Check if node type is a database-generated node.
+        
+        Args:
+            node_type: Node type identifier
+            
+        Returns:
+            True if this is a database node
+        """
+        if not node_type:
+            return False
+        
+        # Known database node providers
+        database_providers = [
+            'trm_labs',
+            'chainalysis',
+            'elliptic',
+            'chainalysis_reactor',
+            'trm',
+        ]
+        
+        # Check if node_type starts with any provider prefix
+        for provider in database_providers:
+            if node_type.startswith(f"{provider}_"):
+                return True
+        
+        return False
+
+    def _get_current_node_definition(self, node_type: str) -> dict:
+        """
+        Get current node definition from database.
+        
+        Args:
+            node_type: Node type identifier
+            
+        Returns:
+            Node definition dictionary, or None if not found
+        """
+        from apps.integrations.models import OpenAPISpec
+        from apps.integrations.node_generator import NodeGenerator
+        
+        # Extract provider from node_type
+        parts = node_type.split('_')
+        if len(parts) >= 2:
+            provider = '_'.join(parts[:2])
+        else:
+            provider = parts[0] if parts else ''
+        
+        # Find active spec for this provider
+        spec = OpenAPISpec.objects.filter(
+            provider=provider,
+            is_active=True,
+            is_parsed=True
+        ).first()
+        
+        if not spec:
+            # Try without underscore
+            provider_no_underscore = provider.replace('_', '')
+            spec = OpenAPISpec.objects.filter(
+                provider=provider_no_underscore,
+                is_active=True,
+                is_parsed=True
+            ).first()
+        
+        if not spec:
+            logger.warning(f"No active spec found for provider: {provider}")
+            return None
+        
+        # Generate nodes and find matching one
+        generator = NodeGenerator()
+        endpoints = spec.parsed_data.get('endpoints', [])
+        
+        if not endpoints:
+            logger.warning(f"No endpoints in spec for: {provider}")
+            return None
+        
+        nodes = generator.generate_nodes(
+            endpoints=endpoints,
+            provider=provider
+        )
+        
+        for node in nodes:
+            if node['type'] == node_type:
+                return node
+        
+        logger.warning(f"Node type {node_type} not found in generated nodes")
+        return None

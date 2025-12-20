@@ -124,7 +124,120 @@ EasyCall features a modern, crypto-themed landing page built with Django templat
 
 ---
 
-## 🔌 OpenAPI Integration System
+## 🔌 Provider Management System (NEW)
+
+EasyCall now features a **dynamic provider system** that allows you to add new blockchain intelligence APIs without writing code!
+
+### How It Works
+
+1. **Upload OpenAPI Spec** → Admin uploads API specification file (YAML/JSON)
+2. **Automatic Parsing** → Backend parses endpoints, parameters, and responses
+3. **Node Generation** → System creates workflow nodes automatically
+4. **Instant Availability** → New nodes appear in the canvas palette immediately
+
+### Supported Formats
+
+- ✅ OpenAPI 3.0 (JSON/YAML)
+- ✅ OpenAPI 3.1 (JSON/YAML)
+- ✅ Swagger 2.0 (coming soon)
+
+### Adding a New Provider
+```bash
+# 1. Go to Django Admin
+http://localhost:8000/admin/integrations/openapispec/
+
+# 2. Click "Add OpenAPI Spec"
+# 3. Upload your spec file (e.g., elliptic_api.yaml)
+# 4. Click "Save"
+
+# 5. Nodes appear automatically in the frontend!
+```
+
+### Provider Management API
+```bash
+# List all providers
+GET /api/v1/integrations/specs/
+
+# Create new provider
+POST /api/v1/integrations/specs/
+Content-Type: multipart/form-data
+{
+  "provider": "elliptic",
+  "name": "Elliptic API",
+  "version": "1.0",
+  "spec_file": <file>
+}
+
+# Parse specification
+POST /api/v1/integrations/specs/{uuid}/parse/
+
+# Generate nodes
+POST /api/v1/integrations/specs/{uuid}/generate/
+```
+
+### Example: Adding Elliptic API
+```yaml
+# elliptic_api.yaml
+openapi: 3.0.0
+info:
+  title: Elliptic API
+  version: 1.0.0
+paths:
+  /v1/wallets/{address}/risk:
+    get:
+      operationId: getWalletRisk
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Risk score
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  risk_score:
+                    type: number
+```
+
+Upload this file → Get "Wallet Risk" node automatically! 🎉
+
+### Database-Driven Nodes vs Static Nodes
+
+| Feature | Static Nodes | Database Nodes |
+|---------|-------------|----------------|
+| Defined in | TypeScript code | Database (from OpenAPI specs) |
+| Add new nodes | Requires coding | Upload spec file |
+| Update nodes | Code deployment | Re-upload spec |
+| Provider count | 2 (Chainalysis, TRM) | Unlimited |
+| Examples | Input, Output, Config | Any API endpoint |
+
+### Architecture
+```
+OpenAPI Spec File
+        ↓
+    Backend Parser (openapi_parser.py)
+        ↓
+    Node Generator (node_generator.py)
+        ↓
+    Database (OpenAPISpec model)
+        ↓
+    REST API (/api/v1/integrations/specs/)
+        ↓
+    React Hooks (useGeneratedNodes)
+        ↓
+    NodePalette Component
+        ↓
+    Workflow Canvas (drag & drop)
+```
+
+---
+
+## 🔌 OpenAPI Integration System (Technical Details)
 
 ### Core Concept
 

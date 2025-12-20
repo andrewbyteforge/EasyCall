@@ -16,6 +16,10 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from apps.integrations.models import OpenAPISpec
 
@@ -152,30 +156,101 @@ class OpenAPISpecAdmin(admin.ModelAdmin):
             )
     parse_status_display.short_description = "Status"
     
+    @admin.display(description="Actions")
     def actions_display(self, obj):
         """Display action buttons."""
+        if not obj.pk:
+            return "-"
+        
         buttons = []
         
-        # Parse button
-        if not obj.is_parsed:
-            parse_url = reverse("admin:integrations_parse_spec", args=[obj.pk])
+        # Parse button (if not parsed or has errors)
+        if not obj.is_parsed or obj.parse_error:
+            # Use API endpoint with JavaScript
             buttons.append(
-                f'<a href="{parse_url}" class="button" '
+                f'<button onclick="parseSpec(\'{obj.uuid}\')" '
+                f'class="button" '
                 f'style="background: #417690; color: white; padding: 3px 10px; '
-                f'text-decoration: none; border-radius: 3px;">Parse</a>'
+                f'border: none; cursor: pointer; border-radius: 3px;">Parse</button>'
             )
         
-        # Generate nodes button
+        # Generate nodes button (if parsed)
         if obj.is_parsed:
-            generate_url = reverse("admin:integrations_generate_nodes", args=[obj.pk])
             buttons.append(
-                f'<a href="{generate_url}" class="button" '
-                f'style="background: #417690; color: white; padding: 3px 10px; '
-                f'text-decoration: none; border-radius: 3px;">Generate Nodes</a>'
+                f'<button onclick="generateNodes(\'{obj.uuid}\')" '
+                f'class="button" '
+                f'style="background: #28a745; color: white; padding: 3px 10px; '
+                f'border: none; cursor: pointer; border-radius: 3px;">Generate Nodes</button>'
             )
         
-        return mark_safe(" ".join(buttons))
-    actions_display.short_description = "Actions"
+        # View Details button (always show)
+        detail_url = reverse("admin:integrations_openapispec_change", args=[obj.pk])
+        buttons.append(
+            f'<a href="{detail_url}" class="button" '
+            f'style="background: #6c757d; color: white; padding: 3px 10px; '
+            f'text-decoration: none; border-radius: 3px;">View</a>'
+        )
+        
+        # Add JavaScript functions (only once, using a flag)
+        script = """
+        <script>
+        if (typeof parseSpec === 'undefined') {
+            function parseSpec(uuid) {
+                if (confirm('Parse this OpenAPI specification?')) {
+                    fetch(`/api/v1/integrations/specs/${uuid}/parse/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('✓ Parsed successfully: ' + data.message);
+                            location.reload();
+                        } else {
+                            alert('✗ Parse failed: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('✗ Error: ' + error);
+                    });
+                }
+            }
+            
+            function generateNodes(uuid) {
+                if (confirm('Generate nodes from this specification?')) {
+                    fetch(`/api/v1/integrations/specs/${uuid}/generate/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('✓ Generated ' + data.nodes.length + ' nodes successfully!');
+                            location.reload();
+                        } else {
+                            alert('✗ Generation failed: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('✗ Error: ' + error);
+                    });
+                }
+            }
+        }
+        </script>
+        """
+        
+        return format_html(
+            '{}<div style="white-space: nowrap;">{}</div>',
+            mark_safe(script),
+            mark_safe(" ".join(buttons))
+        )
+    
+    
     
     def parsed_data_display(self, obj):
         """Display parsed data in readable format."""

@@ -1,0 +1,253 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Chainalysis Reactor API (Sample)",
+    "version": "2.0.0",
+    "description": "Sample Chainalysis blockchain investigation API"
+  },
+  "servers": [
+    {
+      "url": "https://iapi.chainalysis.com",
+      "description": "Production server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "tokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Token"
+      }
+    }
+  },
+  "security": [
+    {
+      "tokenAuth": []
+    }
+  ],
+  "paths": {
+    "/clusters/{address}": {
+      "get": {
+        "operationId": "getClusterInfo",
+        "summary": "Get Cluster Information",
+        "description": "Returns cluster attribution and category for an address",
+        "tags": ["Cluster Analysis"],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "required": true,
+            "description": "Blockchain address",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "blockchain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["bitcoin", "ethereum", "litecoin"],
+              "default": "bitcoin"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cluster information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cluster_id": {
+                      "type": "string"
+                    },
+                    "cluster_name": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    },
+                    "address_count": {
+                      "type": "integer"
+                    },
+                    "root_address": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clusters/{address}/summary": {
+      "get": {
+        "operationId": "getClusterBalance",
+        "summary": "Get Cluster Balance",
+        "description": "Returns balance and transaction summary for a cluster",
+        "tags": ["Cluster Analysis"],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "balance": {
+                      "type": "number"
+                    },
+                    "total_sent": {
+                      "type": "number"
+                    },
+                    "total_received": {
+                      "type": "number"
+                    },
+                    "transfer_count": {
+                      "type": "integer"
+                    },
+                    "deposit_count": {
+                      "type": "integer"
+                    },
+                    "withdrawal_count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/exposures/{address}/categories": {
+      "get": {
+        "operationId": "getCategoryExposure",
+        "summary": "Get Category Exposure",
+        "description": "Returns exposure to different categories",
+        "tags": ["Exposure Analysis"],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["sent", "received", "both"],
+              "default": "both"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category exposure data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "address": {
+                      "type": "string"
+                    },
+                    "direct_exposure": {
+                      "type": "object"
+                    },
+                    "indirect_exposure": {
+                      "type": "object"
+                    },
+                    "category_count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transactions/{hash}": {
+      "get": {
+        "operationId": "getTransactionDetails",
+        "summary": "Get Transaction Details",
+        "description": "Returns detailed transaction information",
+        "tags": ["Transaction Analysis"],
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "path",
+            "required": true,
+            "description": "Transaction hash",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "hash": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "inputs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "outputs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "total_input": {
+                      "type": "number"
+                    },
+                    "total_output": {
+                      "type": "number"
+                    },
+                    "fee": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -185,3 +185,44 @@ class WorkflowViewSet(viewsets.ModelViewSet):
                 "error": str(e),
                 "traceback": traceback.format_exc()
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    def update(self, request, *args, **kwargs):
+        """Update workflow - capture frozen node configuration."""
+        workflow = self.get_object()
+        logger.info(f"Updating workflow: {workflow.name}")
+        
+        # BEFORE saving, capture frozen node definitions
+        if 'canvas_data' in request.data:
+            canvas_data = request.data['canvas_data']
+            self._capture_frozen_nodes(workflow, canvas_data)
+            request.data['canvas_data'] = canvas_data
+        
+        return super().update(request, *args, **kwargs)
+
+
+    def _capture_frozen_nodes(self, workflow, canvas_data: dict):
+        """
+        Capture frozen node definitions for database nodes.
+        
+        Stores node definitions in canvas_data['_frozen_nodes'] to prevent
+        breaking changes when providers are updated.
+        """
+        from apps.integrations.models import OpenAPISpec
+        from apps.integrations.node_generator import NodeGenerator
+        
+        nodes = canvas_data.get('nodes', [])
+        frozen_nodes = {}
+        
+        for node in nodes:
+            node_type = node.get('type')
+            
+            # Check if this is a database node
+            if self._is_database_node_type(node_type):
+                # Look up current definition
+                node_def = self._get_current_node_definition(node_type)
+                if node_def:
+                    frozen_nodes[node_type] = node_def
+        
+        # Store frozen definitions
+        canvas_data['_frozen_nodes'] = frozen_nodes
+        logger.info(f"Captured {len(frozen_nodes)} frozen node definitions")

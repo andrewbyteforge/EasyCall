@@ -2146,3 +2146,88 @@ class WorkflowExecutor:
                     no_deps.append(nid)
 
         return sorted_nodes
+
+def _is_database_node(self, node_type: str) -> bool:
+    """
+    Check if node_type is a database-generated node.
+    
+    Database nodes follow pattern: {provider}_{operation_id}
+    Examples: trm_labs_get_attribution, chainalysis_get_cluster_info
+    """
+    # Database nodes contain provider prefix
+    providers = ['trm_labs', 'chainalysis', 'elliptic']  # Add more as needed
+    return any(node_type.startswith(f"{provider}_") for provider in providers)
+
+
+def _execute_database_node(self, node_type: str, inputs: dict, config: dict) -> dict:
+    """
+    Execute a database-generated node.
+    
+    Steps:
+    1. Look up node definition (frozen config first, then database)
+    2. Build HTTP request from definition
+    3. Execute API call
+    4. Map response to outputs
+    """
+    # Step 1: Get node definition
+    node_def = self._lookup_node_definition(node_type)
+    
+    if not node_def:
+        raise NodeExecutionError(f"Node definition not found: {node_type}")
+    
+    # Step 2: Build API request
+    request_config = self._build_api_request(node_def, inputs, config)
+    
+    # Step 3: Execute API call
+    from apps.execution.api_executor import GenericAPIExecutor
+    api_executor = GenericAPIExecutor()
+    response = api_executor.execute(request_config)
+    
+    # Step 4: Map response to outputs
+    return self._map_api_response(response, node_def)
+
+
+def _lookup_node_definition(self, node_type: str) -> Optional[dict]:
+    """
+    Look up node definition from frozen config or database.
+    
+    Priority:
+    1. Frozen configuration (from workflow save)
+    2. Current database definition
+    """
+    # Check frozen config first (stored in workflow.canvas_data['_frozen_nodes'])
+    frozen_nodes = self.workflow.canvas_data.get('_frozen_nodes', {})
+    if node_type in frozen_nodes:
+        self._log(f"  [FROZEN] Using frozen node definition for {node_type}")
+        return frozen_nodes[node_type]
+    
+    # Fall back to database
+    from apps.integrations.models import OpenAPISpec
+    from apps.integrations.node_generator import NodeGenerator
+    
+    # Extract provider from node_type (e.g., "trm_labs_get_attribution" -> "trm_labs")
+    provider = '_'.join(node_type.split('_')[:2])  # "trm_labs"
+    
+    # Find active spec for this provider
+    spec = OpenAPISpec.objects.filter(
+        provider=provider,
+        is_active=True,
+        is_parsed=True
+    ).first()
+    
+    if not spec:
+        return None
+    
+    # Generate nodes and find matching one
+    generator = NodeGenerator()
+    nodes = generator.generate_nodes(
+        endpoints=spec.parsed_data.get('endpoints', []),
+        provider=provider
+    )
+    
+    for node in nodes:
+        if node['type'] == node_type:
+            self._log(f"  [DATABASE] Using current node definition for {node_type}")
+            return node
+    
+    return None

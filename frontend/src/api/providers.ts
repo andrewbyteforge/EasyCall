@@ -239,6 +239,10 @@ export async function generateNodesFromSpec(
  * 
  * @returns Promise resolving to array of all generated node definitions
  */
+/**
+ * Get all generated nodes from all active providers.
+ * Fetches from the grouped_by_provider endpoint with full pin data.
+ */
 export async function getAllGeneratedNodes(): Promise<GeneratedNodeDefinition[]> {
     console.log('[API] Fetching nodes from:', 'http://localhost:8000/api/v1/integrations/nodes/grouped_by_provider/');
 
@@ -256,17 +260,17 @@ export async function getAllGeneratedNodes(): Promise<GeneratedNodeDefinition[]>
 
         providersData.forEach((providerGroup: any) => {
             providerGroup.nodes.forEach((node: any) => {
-                // Parse input pins from backend data
-                const inputs = (node.input_pins || []).map((pin: any) => ({
+                // ⭐ FIX: Backend returns "inputs" not "input_pins" (thanks to serializer mapping)
+                const inputs = (node.inputs || []).map((pin: any) => ({
                     id: pin.id,
                     label: pin.label,
                     type: pin.type || 'ANY',
-                    required: pin.required || false,
+                    required: pin.required !== undefined ? pin.required : false,
                     description: pin.description || '',
                 }));
 
-                // Parse output pins from backend data
-                const outputs = (node.output_pins || []).map((pin: any) => ({
+                // ⭐ FIX: Backend returns "outputs" not "output_pins" (thanks to serializer mapping)
+                const outputs = (node.outputs || []).map((pin: any) => ({
                     id: pin.id,
                     label: pin.label,
                     type: pin.type || 'ANY',
@@ -274,8 +278,8 @@ export async function getAllGeneratedNodes(): Promise<GeneratedNodeDefinition[]>
                     description: pin.description || '',
                 }));
 
-                // Parse configuration fields
-                const configuration = node.configuration_fields || [];
+                // ⭐ FIX: Backend returns "configuration" not "configuration_fields"
+                const configuration = node.configuration || [];
 
                 allNodes.push({
                     type: node.node_type,
@@ -286,11 +290,11 @@ export async function getAllGeneratedNodes(): Promise<GeneratedNodeDefinition[]>
                     inputs,  // ← Now includes real pins!
                     outputs, // ← Now includes real pins!
                     configuration,
-                    visual: {
-                        icon: node.icon,
-                        color: node.color,
-                        width: 200,
-                        height: 120,
+                    visual: node.visual || {
+                        icon: node.icon || '🔌',
+                        color: node.color || '#00897b',
+                        width: 220,
+                        height: 'auto',
                     },
                 });
             });
@@ -299,6 +303,8 @@ export async function getAllGeneratedNodes(): Promise<GeneratedNodeDefinition[]>
         console.log('[API] Converted to', allNodes.length, 'node definitions with pins');
         if (allNodes.length > 0) {
             console.log('[API] Sample node:', allNodes[0]);
+            console.log('[API] Sample inputs:', allNodes[0].inputs);
+            console.log('[API] Sample outputs:', allNodes[0].outputs);
         }
 
         return allNodes;

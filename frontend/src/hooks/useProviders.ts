@@ -3,6 +3,7 @@
 // =============================================================================
 // React hooks for Provider Management System.
 // Provides state management and data fetching for OpenAPISpec operations.
+// Includes conversion logic for database-generated nodes with pin data.
 // =============================================================================
 
 import { useState, useEffect, useCallback } from 'react';
@@ -76,6 +77,56 @@ interface ProviderGenerateResult {
     execute: (uuid: string) => Promise<GenerateResponse>;
     loading: boolean;
     error: Error | null;
+}
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Convert raw API node data to GeneratedNodeDefinition format.
+ * Ensures all required fields are properly mapped, especially pins.
+ * 
+ * @param apiNodes - Raw node data from API
+ * @returns Array of properly formatted node definitions
+ */
+function convertAPINodeToDefinition(apiNode: any): GeneratedNodeDefinition {
+    return {
+        type: apiNode.node_type || apiNode.type,
+        name: apiNode.display_name || apiNode.name,
+        category: apiNode.category as 'query',
+        provider: apiNode.provider_name || apiNode.provider,
+        description: apiNode.description || '',
+
+        // ⭐ CRITICAL: Properly map inputs from API response
+        inputs: (apiNode.inputs || []).map((input: any) => ({
+            id: input.id,
+            label: input.label,
+            type: input.type,
+            required: input.required !== undefined ? input.required : false,
+            description: input.description || '',
+        })),
+
+        // ⭐ CRITICAL: Properly map outputs from API response
+        outputs: (apiNode.outputs || []).map((output: any) => ({
+            id: output.id,
+            label: output.label,
+            type: output.type,
+            required: false,
+            description: output.description || '',
+        })),
+
+        // ⭐ CRITICAL: Map configuration fields
+        configuration: apiNode.configuration || [],
+
+        // ⭐ CRITICAL: Map visual properties
+        visual: apiNode.visual || {
+            icon: apiNode.icon || '🔌',
+            color: apiNode.color || '#00897b',
+            width: 220,
+            height: 'auto',
+        },
+    };
 }
 
 // =============================================================================
@@ -166,6 +217,7 @@ export function useProvider(uuid: string | null): UseProviderResult {
 /**
  * Hook to fetch all generated nodes from all active providers.
  * Used for populating the node palette with dynamic nodes.
+ * Converts API response to proper GeneratedNodeDefinition format with pins.
  * 
  * @returns Generated nodes, loading state, error, and refetch function
  */
@@ -178,8 +230,40 @@ export function useGeneratedNodes(): UseGeneratedNodesResult {
         try {
             setLoading(true);
             setError(null);
-            const data = await getAllGeneratedNodes();
-            setNodes(data);
+
+            // Fetch raw data from API
+            const rawData = await getAllGeneratedNodes();
+
+            console.log('[HOOKS] Raw API data:', rawData);
+
+            // Convert to proper format with pin data
+            const convertedNodes: GeneratedNodeDefinition[] = [];
+
+            // Handle both direct array and grouped format
+            if (Array.isArray(rawData)) {
+                // Direct array format
+                rawData.forEach((node: any) => {
+                    convertedNodes.push(convertAPINodeToDefinition(node));
+                });
+            } else if (rawData && typeof rawData === 'object') {
+                // Grouped by provider format
+                Object.values(rawData).forEach((providerGroup: any) => {
+                    if (providerGroup.nodes && Array.isArray(providerGroup.nodes)) {
+                        providerGroup.nodes.forEach((node: any) => {
+                            convertedNodes.push(convertAPINodeToDefinition(node));
+                        });
+                    }
+                });
+            }
+
+            console.log(`[HOOKS] Converted ${convertedNodes.length} nodes`);
+            if (convertedNodes.length > 0) {
+                console.log('[HOOKS] Sample converted node:', convertedNodes[0]);
+                console.log('[HOOKS] Sample inputs:', convertedNodes[0].inputs);
+                console.log('[HOOKS] Sample outputs:', convertedNodes[0].outputs);
+            }
+
+            setNodes(convertedNodes);
         } catch (err) {
             setError(err as Error);
             console.error('Error fetching generated nodes:', err);

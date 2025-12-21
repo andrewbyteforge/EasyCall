@@ -74,6 +74,12 @@ export const useWorkflow = () => {
     // ADD NODE AT POSITION (Drag-and-Drop) - Supports static + database nodes
     // ---------------------------------------------------------------------------
 
+    // =============================================================================
+    // FILE: frontend/src/hooks/useWorkflow.ts
+    // =============================================================================
+
+    // ... (keep all imports and earlier code the same) ...
+
     const addNodeAtPosition = useCallback(
         (nodeType: string, position: { x: number; y: number }) => {
             // Try to find node definition in static nodes first
@@ -119,7 +125,7 @@ export const useWorkflow = () => {
             }
 
             if (!nodeDefinition) {
-                console.error('❌ Unknown node type:', nodeType);
+                console.error('[ERROR] Unknown node type:', nodeType);
                 console.log('Available static nodes:', getAllNodeTypes().map(n => n.type));
                 console.log('Available database nodes:', generatedNodes.map(n => n.type));
                 return;
@@ -134,32 +140,33 @@ export const useWorkflow = () => {
                 y: Math.round(position.y / 15) * 15,
             };
 
-            // Create node data matching BaseNode component expectations
+            // ✅ CRITICAL: Create node with proper structure for BaseNode
+            // THIS IS THE FIX - Include type and color for each pin
             const newNode: Node = {
                 id,
-                type: nodeType, // Use the actual node type so React Flow uses correct component
+                type: nodeType, // ← Use actual node type so React Flow uses correct component
                 position: snappedPosition,
                 data: {
                     label: nodeDefinition.name,
                     category: nodeDefinition.category,
                     icon: nodeDefinition.icon,
                     description: nodeDefinition.description,
-                    nodeType: nodeType,
+                    nodeType: nodeType, // Add nodeType field
 
-                    // Map inputs from definition
+                    // ⭐ FIX: Map inputs with type and color fields
                     inputs: nodeDefinition.inputs.map((input) => ({
                         id: input.id,
                         label: input.label,
-                        type: input.type,
-                        color: input.type, // Use type as color key
+                        type: input.type,        // ← ADD THIS
+                        color: input.type,       // ← ADD THIS
                     })),
 
-                    // Map outputs from definition
+                    // ⭐ FIX: Map outputs with type and color fields
                     outputs: nodeDefinition.outputs.map((output) => ({
                         id: output.id,
                         label: output.label,
-                        type: output.type,
-                        color: output.type, // Use type as color key
+                        type: output.type,       // ← ADD THIS
+                        color: output.type,      // ← ADD THIS
                     })),
 
                     // Include configuration fields for editable nodes
@@ -174,9 +181,10 @@ export const useWorkflow = () => {
                 },
             };
 
-            setNodes((nds) => [...nds, newNode]);
+            setNodes((nds: Node[]) => [...nds, newNode]);
 
-            console.log('✅ Node added:', nodeDefinition.name, 'at', snappedPosition);
+            console.log('[ADD NODE] Created:', nodeDefinition.name, 'at', snappedPosition);
+            console.log('[ADD NODE] Inputs:', nodeDefinition.inputs.length, 'Outputs:', nodeDefinition.outputs.length);
         },
         [deleteNode, generatedNodes]
     );

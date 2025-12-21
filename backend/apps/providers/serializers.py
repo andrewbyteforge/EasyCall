@@ -1,5 +1,5 @@
 # =============================================================================
-# FILE: easycall/backend/apps/providers/serializers.py
+# FILE: backend/apps/providers/serializers.py
 # =============================================================================
 # DRF serializers for provider models.
 # =============================================================================
@@ -233,16 +233,27 @@ class APIEndpointDetailSerializer(serializers.ModelSerializer):
 
 class GeneratedNodeListSerializer(serializers.ModelSerializer):
     """
-    Lightweight serializer for node lists.
+    Serializer for listing nodes (used in palette).
+    
+    Maps model field names to frontend-expected field names:
+    - input_pins → inputs
+    - output_pins → outputs
+    - configuration_fields → configuration
     """
     
-    provider_name = serializers.CharField(
-        source='provider.name',
-        read_only=True
-    )
+    provider_name = serializers.CharField(source='provider.name', read_only=True)
+    input_pin_count = serializers.SerializerMethodField()
+    output_pin_count = serializers.SerializerMethodField()
     
-    input_pin_count = serializers.IntegerField(read_only=True)
-    output_pin_count = serializers.IntegerField(read_only=True)
+    # ⭐ CRITICAL: Map API field names to model field names
+    # Frontend expects: inputs, outputs, configuration
+    # Model has: input_pins, output_pins, configuration_fields
+    inputs = serializers.JSONField(source='input_pins', read_only=True)
+    outputs = serializers.JSONField(source='output_pins', read_only=True)
+    configuration = serializers.JSONField(source='configuration_fields', read_only=True)
+    
+    # ⭐ ADD: Include visual object for consistency
+    visual = serializers.SerializerMethodField()
     
     class Meta:
         model = GeneratedNode
@@ -256,16 +267,44 @@ class GeneratedNodeListSerializer(serializers.ModelSerializer):
             'description',
             'icon',
             'color',
+            'inputs',           # Maps to input_pins
+            'outputs',          # Maps to output_pins
+            'configuration',    # Maps to configuration_fields
+            'visual',           # Composed from icon, color, etc.
             'input_pin_count',
             'output_pin_count',
             'created_at',
         ]
-        read_only_fields = ['uuid', 'created_at']
+    
+    def get_input_pin_count(self, obj):
+        """Count input pins."""
+        return len(obj.input_pins) if obj.input_pins else 0
+    
+    def get_output_pin_count(self, obj):
+        """Count output pins."""
+        return len(obj.output_pins) if obj.output_pins else 0
+    
+    def get_visual(self, obj):
+        """
+        Compose visual object for frontend.
+        
+        Returns:
+            Visual configuration dict.
+        """
+        return {
+            'icon': obj.icon or '🔌',
+            'color': obj.color or '#00897b',
+            'width': 220,
+            'height': 'auto',
+        }
 
 
 class GeneratedNodeDetailSerializer(serializers.ModelSerializer):
     """
     Detailed serializer for node details.
+    
+    Includes all fields and relationships with mapped field names
+    for frontend compatibility.
     """
     
     provider_name = serializers.CharField(
@@ -290,6 +329,12 @@ class GeneratedNodeDetailSerializer(serializers.ModelSerializer):
     is_credential_node = serializers.BooleanField(read_only=True)
     is_query_node = serializers.BooleanField(read_only=True)
     
+    # ⭐ ADD: Map field names for frontend consistency
+    inputs = serializers.JSONField(source='input_pins', read_only=True)
+    outputs = serializers.JSONField(source='output_pins', read_only=True)
+    configuration = serializers.JSONField(source='configuration_fields', read_only=True)
+    visual = serializers.SerializerMethodField()
+    
     class Meta:
         model = GeneratedNode
         fields = [
@@ -305,19 +350,41 @@ class GeneratedNodeDetailSerializer(serializers.ModelSerializer):
             'description',
             'icon',
             'color',
+            # Mapped fields (frontend-friendly names)
+            'inputs',
+            'outputs',
+            'configuration',
+            'visual',
+            # Original model fields (for backward compatibility)
             'input_pins',
             'output_pins',
             'configuration_fields',
             'validation_rules',
             'metadata',
+            # Computed fields
             'input_pin_count',
             'output_pin_count',
             'is_credential_node',
             'is_query_node',
+            # Timestamps
             'created_at',
             'updated_at',
         ]
         read_only_fields = ['uuid', 'created_at', 'updated_at']
+    
+    def get_visual(self, obj):
+        """
+        Compose visual object for frontend.
+        
+        Returns:
+            Visual configuration dict.
+        """
+        return {
+            'icon': obj.icon or '🔌',
+            'color': obj.color or '#00897b',
+            'width': 220,
+            'height': 'auto',
+        }
 
 
 # =============================================================================

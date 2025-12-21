@@ -143,7 +143,7 @@ class OpenAPISpec(BaseModel):
             models.Index(fields=["provider", "-created_at"]),
             models.Index(fields=["is_parsed", "-created_at"]),
         ]
-        unique_together = [["provider", "version"]]
+        # Removed unique_together - allow multiple versions per provider
     
     def __str__(self) -> str:
         """String representation."""

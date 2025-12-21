@@ -232,26 +232,74 @@ export async function generateNodesFromSpec(
 }
 
 /**
- * Get all generated nodes from all active parsed specifications.
- * Useful for loading all available nodes into the node palette.
+ * Get all generated nodes from all active providers.
+ * Fetches from the grouped_by_provider endpoint with full pin data.
+ * 
+ * UPDATED: Now parses input_pins and output_pins from backend.
  * 
  * @returns Promise resolving to array of all generated node definitions
  */
 export async function getAllGeneratedNodes(): Promise<GeneratedNodeDefinition[]> {
+    console.log('[API] Fetching nodes from:', 'http://localhost:8000/api/v1/integrations/nodes/grouped_by_provider/');
+
     try {
-        // Get all active, parsed specs
-        const specs = await listProviderSpecs();
-        const parsedSpecs = specs.filter((spec) => spec.is_parsed && spec.is_active);
+        const response = await fetch('http://localhost:8000/api/v1/integrations/nodes/grouped_by_provider/');
 
-        // Generate nodes for each spec
-        const nodePromises = parsedSpecs.map((spec) =>
-            generateNodesFromSpec(spec.uuid)
-        );
+        if (!response.ok) {
+            throw new Error(`Failed to fetch nodes: ${response.status} ${response.statusText}`);
+        }
 
-        const results = await Promise.all(nodePromises);
+        const providersData = await response.json();
+        console.log('[API] Received providers:', providersData);
 
-        // Flatten all nodes into single array
-        const allNodes = results.flatMap((result) => result.nodes);
+        const allNodes: GeneratedNodeDefinition[] = [];
+
+        providersData.forEach((providerGroup: any) => {
+            providerGroup.nodes.forEach((node: any) => {
+                // Parse input pins from backend data
+                const inputs = (node.input_pins || []).map((pin: any) => ({
+                    id: pin.id,
+                    label: pin.label,
+                    type: pin.type || 'ANY',
+                    required: pin.required || false,
+                    description: pin.description || '',
+                }));
+
+                // Parse output pins from backend data
+                const outputs = (node.output_pins || []).map((pin: any) => ({
+                    id: pin.id,
+                    label: pin.label,
+                    type: pin.type || 'ANY',
+                    required: false,
+                    description: pin.description || '',
+                }));
+
+                // Parse configuration fields
+                const configuration = node.configuration_fields || [];
+
+                allNodes.push({
+                    type: node.node_type,
+                    name: node.display_name,
+                    category: 'query' as const,
+                    provider: providerGroup.provider,
+                    description: node.description,
+                    inputs,  // ← Now includes real pins!
+                    outputs, // ← Now includes real pins!
+                    configuration,
+                    visual: {
+                        icon: node.icon,
+                        color: node.color,
+                        width: 200,
+                        height: 120,
+                    },
+                });
+            });
+        });
+
+        console.log('[API] Converted to', allNodes.length, 'node definitions with pins');
+        if (allNodes.length > 0) {
+            console.log('[API] Sample node:', allNodes[0]);
+        }
 
         return allNodes;
     } catch (error) {

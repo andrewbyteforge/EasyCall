@@ -27,6 +27,7 @@ from apps.integrations.serializers import (
 )
 from apps.integrations.openapi_parser import OpenAPIParser, OpenAPIParseError
 from apps.integrations.node_generator import NodeGenerator
+from apps.providers.serializers import GeneratedNodeListSerializer
 
 # =============================================================================
 # LOGGER
@@ -86,14 +87,6 @@ class OpenAPISpecViewSet(viewsets.ModelViewSet):
         
         # Create the spec
         serializer = self.get_serializer(data=request.data)
-        logger.info(
-            "Create uses serializer=%s version.required=%s version.allow_blank=%s incoming_version=%r",
-            serializer.__class__.__name__,
-            serializer.fields["version"].required if "version" in serializer.fields else None,
-            serializer.fields["version"].allow_blank if "version" in serializer.fields else None,
-            request.data.get("version"),
-        )
-
         serializer.is_valid(raise_exception=True)
         spec = serializer.save()
         
@@ -188,10 +181,7 @@ class OpenAPISpecViewSet(viewsets.ModelViewSet):
         
         POST /api/v1/integrations/specs/{uuid}/generate/
         
-        Request body (optional):
-            {
-                "category": "query"  // Node category (default: "query")
-            }
+        Saves generated nodes to the database and returns definitions.
         
         Returns:
             Generated node definitions.
@@ -207,6 +197,9 @@ class OpenAPISpecViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # Import Provider models
+            from apps.providers.models import Provider, GeneratedNode
+            
             # Get category from request (default: query)
             category = request.data.get("category", "query")
             
@@ -222,6 +215,56 @@ class OpenAPISpecViewSet(viewsets.ModelViewSet):
             
             logger.info(f"Generated {len(nodes)} nodes for spec {spec.uuid}")
             
+            # =====================================================================
+            # Save nodes to database
+            # =====================================================================
+            
+            # Get or create Provider
+            provider_obj, created = Provider.objects.get_or_create(
+                slug=spec.provider,
+                defaults={
+                    'name': spec.name,
+                    'version': spec.version,
+                    'base_url': '',  # Add base URL if available in spec
+                    'description': f'Auto-generated from {spec.name}',
+                    'status': 'active',
+                }
+            )
+            
+            if created:
+                logger.info(f"Created new Provider: {provider_obj.slug}")
+            
+            # Save each generated node
+            saved_count = 0
+            for node_def in nodes:
+                # Create or update the GeneratedNode
+                node, node_created = GeneratedNode.objects.update_or_create(
+                    node_type=node_def['type'],
+                    defaults={
+                        'provider': provider_obj,
+                        'display_name': node_def.get('label', node_def['type']),
+                        'category': node_def.get('category', 'query'),
+                        'description': node_def.get('description', ''),
+                        'input_pins': node_def.get('inputs', []),
+                        'output_pins': node_def.get('outputs', []),
+                        'configuration_fields': node_def.get('config', []),
+                        'icon': node_def.get('icon', '🔌'),
+                        'color': node_def.get('color', '#00897b'),
+                        'metadata': {
+                            'spec_uuid': str(spec.uuid),
+                            'endpoint': node_def.get('endpoint', {}),
+                        }
+                    }
+                )
+                
+                if node_created:
+                    logger.info(f"Created node: {node.node_type}")
+                    saved_count += 1
+                else:
+                    logger.info(f"Updated node: {node.node_type}")
+            
+            logger.info(f"Saved {saved_count} new nodes to database")
+            
             # Return generated nodes
             output_serializer = GeneratedNodesSerializer({
                 "nodes": nodes,
@@ -231,7 +274,7 @@ class OpenAPISpecViewSet(viewsets.ModelViewSet):
             
             return Response({
                 "status": "success",
-                "message": f"Successfully generated {len(nodes)} node definitions",
+                "message": f"Successfully generated {len(nodes)} node definitions ({saved_count} new)",
                 "data": output_serializer.data,
             })
             
@@ -264,3 +307,71 @@ class OpenAPISpecViewSet(viewsets.ModelViewSet):
         
         # Mark as parsed
         spec.mark_as_parsed(parsed_data)
+
+
+# =============================================================================
+# AVAILABLE NODES VIEWSET
+# =============================================================================
+
+class AvailableNodesViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for fetching available workflow nodes.
+    
+    Endpoints:
+        GET /api/v1/integrations/nodes/ - List all available nodes
+        GET /api/v1/integrations/nodes/grouped_by_provider/ - Nodes grouped by provider
+    """
+    
+    serializer_class = GeneratedNodeListSerializer
+    permission_classes = [AllowAny]
+    
+    def get_queryset(self):
+        """Get all nodes from active providers."""
+        from apps.providers.models import GeneratedNode, Provider
+        
+        # Get active providers
+        active_providers = Provider.objects.filter(status='active')
+        
+        # Get nodes for active providers
+        queryset = GeneratedNode.objects.filter(
+            provider__in=active_providers
+        ).select_related('provider').order_by('category', 'display_name')
+        
+        # Optional: Filter by category
+        category = self.request.query_params.get('category', None)
+        if category:
+            queryset = queryset.filter(category=category)
+        
+        # Optional: Filter by provider
+        provider = self.request.query_params.get('provider', None)
+        if provider:
+            queryset = queryset.filter(provider__slug=provider)
+        
+        return queryset
+    
+    @action(detail=False, methods=['get'])
+    def grouped_by_provider(self, request):
+        """
+        Get nodes grouped by provider.
+        
+        GET /api/v1/integrations/nodes/grouped_by_provider/
+        
+        Returns nodes organized by provider for the palette.
+        """
+        from apps.providers.models import Provider, GeneratedNode
+        
+        providers = Provider.objects.filter(status='active').prefetch_related('generated_nodes')
+        
+        result = []
+        for provider in providers:
+            nodes = provider.generated_nodes.all()
+            
+            if nodes.exists():
+                result.append({
+                    'provider': provider.slug,
+                    'name': provider.name,
+                    'icon': provider.icon_path,
+                    'nodes': GeneratedNodeListSerializer(nodes, many=True).data
+                })
+        
+        return Response(result)

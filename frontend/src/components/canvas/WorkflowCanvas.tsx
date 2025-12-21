@@ -2,6 +2,7 @@
 // FILE: frontend/src/components/canvas/WorkflowCanvas.tsx
 // =============================================================================
 // Main workflow canvas component using React Flow with custom UE5-style nodes.
+// Supports both static nodes AND dynamic database-generated nodes.
 // =============================================================================
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -34,20 +35,22 @@ import {
     getNodeType,
     getCategoryColor,
     DataType,
+    NodeCategory,
 } from '../../types/node_types';
+import { useGeneratedNodes } from '../../hooks/useProviders';
 
 // Import your custom BaseNode component
 import BaseNode from '../nodes/BaseNode';
 
 // =============================================================================
-// CUSTOM NODE TYPES REGISTRATION
+// STATIC NODE TYPES REGISTRATION
 // =============================================================================
 
 /**
- * Register all 21 node types to use the BaseNode component.
- * This tells React Flow to render our custom component instead of defaults.
+ * Register all 24 static node types to use the BaseNode component.
+ * This is the base configuration before adding database nodes.
  */
-const customNodeTypes: NodeTypes = {
+const STATIC_NODE_TYPES: NodeTypes = {
     // Configuration Nodes
     credential_chainalysis: BaseNode,
     credential_trm: BaseNode,
@@ -93,15 +96,15 @@ const customNodeTypes: NodeTypes = {
  */
 const DATA_TYPE_COMPATIBILITY: Record<DataType, DataType[]> = {
     [DataType.ADDRESS]: [DataType.ADDRESS, DataType.STRING, DataType.ANY],
-    [DataType.ADDRESS_LIST]: [DataType.ADDRESS_LIST, DataType.ADDRESS, DataType.ANY], // ADDRESS_LIST can connect to ADDRESS (batch processing)
+    [DataType.ADDRESS_LIST]: [DataType.ADDRESS_LIST, DataType.ADDRESS, DataType.ANY],
     [DataType.TRANSACTION]: [DataType.TRANSACTION, DataType.STRING, DataType.ANY],
-    [DataType.TRANSACTION_LIST]: [DataType.TRANSACTION_LIST, DataType.TRANSACTION, DataType.ANY], // TRANSACTION_LIST can connect to TRANSACTION (batch processing)
+    [DataType.TRANSACTION_LIST]: [DataType.TRANSACTION_LIST, DataType.TRANSACTION, DataType.ANY],
     [DataType.CREDENTIALS]: [DataType.CREDENTIALS, DataType.ANY],
     [DataType.JSON_DATA]: [DataType.JSON_DATA, DataType.ANY],
     [DataType.STRING]: [DataType.STRING, DataType.ADDRESS, DataType.TRANSACTION, DataType.ANY],
     [DataType.NUMBER]: [DataType.NUMBER, DataType.ANY],
     [DataType.BOOLEAN]: [DataType.BOOLEAN, DataType.ANY],
-    [DataType.ANY]: Object.values(DataType), // ANY accepts everything
+    [DataType.ANY]: Object.values(DataType),
 };
 
 /**
@@ -123,6 +126,34 @@ function areTypesCompatible(sourceType: DataType, targetType: DataType): boolean
 // =============================================================================
 
 const WorkflowCanvasInner: React.FC = () => {
+    // ---------------------------------------------------------------------------
+    // FETCH DATABASE NODES - Dynamic node types from OpenAPI specs
+    // ---------------------------------------------------------------------------
+    const { nodes: generatedNodes, loading: loadingGeneratedNodes } = useGeneratedNodes();
+
+    // ---------------------------------------------------------------------------
+    // BUILD DYNAMIC NODE TYPES - Merge static + database nodes
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Dynamically build nodeTypes by combining static nodes + database nodes.
+     * This ensures React Flow knows how to render ALL node types.
+     */
+    const customNodeTypes: NodeTypes = useMemo(() => {
+        const dynamicTypes: NodeTypes = { ...STATIC_NODE_TYPES };
+
+        // Register each database-generated node
+        generatedNodes.forEach((generatedNode) => {
+            dynamicTypes[generatedNode.type] = BaseNode;
+        });
+
+        console.log(
+            `[NODE TYPES] Registered ${Object.keys(STATIC_NODE_TYPES).length} static + ${generatedNodes.length} database nodes = ${Object.keys(dynamicTypes).length} total`
+        );
+
+        return dynamicTypes;
+    }, [generatedNodes]);
+
     // ---------------------------------------------------------------------------
     // STATE
     // ---------------------------------------------------------------------------
@@ -157,7 +188,21 @@ const WorkflowCanvasInner: React.FC = () => {
 
         // Check each node for required inputs
         for (const node of nodes) {
-            const nodeDefinition = getNodeType(node.type || '');
+            // Try static nodes first
+            let nodeDefinition = getNodeType(node.type || '');
+
+            // If not found in static nodes, check database nodes
+            if (!nodeDefinition) {
+                const generatedNode = generatedNodes.find((n) => n.type === node.type);
+                if (generatedNode) {
+                    // Use database node's inputs for validation
+                    nodeDefinition = {
+                        inputs: generatedNode.inputs,
+                        outputs: generatedNode.outputs,
+                    } as any;
+                }
+            }
+
             if (!nodeDefinition) continue;
 
             // Check each required input
@@ -176,7 +221,7 @@ const WorkflowCanvasInner: React.FC = () => {
         }
 
         return true;
-    }, [nodes, edges]);
+    }, [nodes, edges, generatedNodes]);
 
     // ---------------------------------------------------------------------------
     // DELETE NODE
@@ -195,16 +240,57 @@ const WorkflowCanvasInner: React.FC = () => {
     }, []);
 
     // ---------------------------------------------------------------------------
-    // ADD NODE AT POSITION (Drag-and-Drop)
+    // ADD NODE AT POSITION (Drag-and-Drop) - Supports static + database nodes
     // ---------------------------------------------------------------------------
 
     const addNodeAtPosition = useCallback(
         (nodeType: string, position: { x: number; y: number }) => {
-            // Get node definition
-            const nodeDefinition = getNodeType(nodeType);
+            // Try to find node definition in static nodes first
+            let nodeDefinition = getNodeType(nodeType);
+
+            // If not found in static nodes, check database-generated nodes
+            if (!nodeDefinition) {
+                const generatedNode = generatedNodes.find((n) => n.type === nodeType);
+                if (generatedNode) {
+                    // Convert GeneratedNodeDefinition to NodeTypeDefinition format
+                    nodeDefinition = {
+                        type: generatedNode.type,
+                        category: generatedNode.category as any,
+                        provider: generatedNode.provider as any,
+                        name: generatedNode.name,
+                        icon: generatedNode.visual.icon,
+                        color: generatedNode.visual.color,
+                        description: generatedNode.description,
+                        visual: generatedNode.visual,
+                        documentation: {
+                            name: generatedNode.name,
+                            description: generatedNode.description,
+                            longDescription: generatedNode.description,
+                            usage: `Connect inputs → Execute → Use outputs`,
+                            examples: [`Query ${generatedNode.provider} API`],
+                        },
+                        inputs: generatedNode.inputs.map((pin) => ({
+                            id: pin.id,
+                            label: pin.label,
+                            type: pin.type as any,
+                            required: pin.required,
+                            description: pin.description,
+                        })),
+                        outputs: generatedNode.outputs.map((pin) => ({
+                            id: pin.id,
+                            label: pin.label,
+                            type: pin.type as any,
+                            description: pin.description,
+                        })),
+                        configuration: generatedNode.configuration || [],
+                    };
+                }
+            }
 
             if (!nodeDefinition) {
                 console.error('[ERROR] Unknown node type:', nodeType);
+                console.log('Available static nodes:', getAllNodeTypes().map(n => n.type));
+                console.log('Available database nodes:', generatedNodes.map(n => n.type));
                 return;
             }
 
@@ -220,7 +306,7 @@ const WorkflowCanvasInner: React.FC = () => {
             // ✅ CRITICAL: Create node with proper structure for BaseNode
             const newNode: Node = {
                 id,
-                type: nodeType, // ← Use actual node type, NOT 'default'
+                type: nodeType, // ← Use actual node type so React Flow uses correct component
                 position: snappedPosition,
                 data: {
                     label: nodeDefinition.name,
@@ -250,7 +336,7 @@ const WorkflowCanvasInner: React.FC = () => {
 
             console.log('[ADD NODE] Created:', nodeDefinition.name, 'at', snappedPosition);
         },
-        []
+        [generatedNodes]
     );
 
     // ---------------------------------------------------------------------------
@@ -339,7 +425,7 @@ const WorkflowCanvasInner: React.FC = () => {
                 setNodes(workflowData.canvas_data.nodes || []);
                 setEdges(workflowData.canvas_data.edges || []);
                 setViewport(workflowData.canvas_data.viewport || { x: 0, y: 0, zoom: 1 });
-                setCurrentWorkflowId(null); // File-based workflows don't have server IDs
+                setCurrentWorkflowId(null);
                 setWorkflowName(workflowData.name);
 
                 // Update last saved state
@@ -467,7 +553,7 @@ const WorkflowCanvasInner: React.FC = () => {
             // Configuration node
             {
                 id: 'cred_1',
-                type: 'credential_chainalysis', // ← Using real node type
+                type: 'credential_chainalysis',
                 position: { x: 100, y: 100 },
                 data: {
                     label: 'Chainalysis Credentials',
@@ -482,7 +568,7 @@ const WorkflowCanvasInner: React.FC = () => {
             // Input node
             {
                 id: 'input_1',
-                type: 'single_address', // ← Using real node type
+                type: 'single_address',
                 position: { x: 100, y: 280 },
                 data: {
                     label: 'Single Address Input',
@@ -500,7 +586,7 @@ const WorkflowCanvasInner: React.FC = () => {
             // Query node
             {
                 id: 'query_1',
-                type: 'chainalysis_cluster_info', // ← Using real node type
+                type: 'chainalysis_cluster_info',
                 position: { x: 450, y: 180 },
                 data: {
                     label: 'Cluster Info (Chainalysis)',
@@ -522,7 +608,7 @@ const WorkflowCanvasInner: React.FC = () => {
             // Output node
             {
                 id: 'output_1',
-                type: 'excel_export', // ← Using real node type
+                type: 'excel_export',
                 position: { x: 820, y: 200 },
                 data: {
                     label: 'Excel Export',
@@ -585,6 +671,7 @@ const WorkflowCanvasInner: React.FC = () => {
 
     /**
      * Validates if a connection is allowed based on data type compatibility.
+     * Supports both static and database-generated nodes.
      */
     const isValidConnection = useCallback((connection: Connection): boolean => {
         const { source, target, sourceHandle, targetHandle } = connection;
@@ -601,25 +688,28 @@ const WorkflowCanvasInner: React.FC = () => {
             return false;
         }
 
-        // Get node definitions
-        const sourceNodeDef = getNodeType(sourceNode.type || '');
-        const targetNodeDef = getNodeType(targetNode.type || '');
+        // Get node definitions (supports both static and database nodes)
+        const sourceNodeDef = getNodeType(sourceNode.type || '') ||
+            generatedNodes.find((n) => n.type === sourceNode.type);
+        const targetNodeDef = getNodeType(targetNode.type || '') ||
+            generatedNodes.find((n) => n.type === targetNode.type);
 
         if (!sourceNodeDef || !targetNodeDef) {
             return false;
         }
 
         // Find output and input pin definitions
-        const outputPin = sourceNodeDef.outputs.find((o) => o.id === sourceHandle);
-        const inputPin = targetNodeDef.inputs.find((i) => i.id === targetHandle);
+        // Type assertion needed because database nodes use GeneratedNodePin which has compatible structure
+        const outputPin = sourceNodeDef.outputs.find((o: any) => o.id === sourceHandle);
+        const inputPin = targetNodeDef.inputs.find((i: any) => i.id === targetHandle);
 
         if (!outputPin || !inputPin) {
             console.log('[VALIDATE] Pin not found:', sourceHandle, '->', targetHandle);
             return false;
         }
 
-        // Check type compatibility
-        const isCompatible = areTypesCompatible(outputPin.type, inputPin.type);
+        // Check type compatibility (cast to DataType for compatibility check)
+        const isCompatible = areTypesCompatible(outputPin.type as DataType, inputPin.type as DataType);
 
         if (!isCompatible) {
             console.log(
@@ -629,7 +719,7 @@ const WorkflowCanvasInner: React.FC = () => {
         }
 
         return isCompatible;
-    }, [nodes]);
+    }, [nodes, generatedNodes]);
 
     const onConnect: OnConnect = useCallback((connection: Connection) => {
         // Validate connection before adding
@@ -638,7 +728,7 @@ const WorkflowCanvasInner: React.FC = () => {
                 ...connection,
                 type: 'smoothstep',
                 animated: true,
-                style: { stroke: '#00c853', strokeWidth: 2 }, // Green for valid connection
+                style: { stroke: '#00c853', strokeWidth: 2 },
             }, eds));
             console.log('[CONNECT] Valid connection:', connection.source, '->', connection.target);
         } else {
@@ -671,6 +761,7 @@ const WorkflowCanvasInner: React.FC = () => {
             y: event.clientY - reactFlowBounds.top,
         };
 
+        console.log('[DROP] Dropped node type:', nodeType, 'at position:', position);
         addNodeAtPosition(nodeType, position);
     }, [addNodeAtPosition]);
 
@@ -693,7 +784,7 @@ const WorkflowCanvasInner: React.FC = () => {
 
         setIsExecuting(true);
         setExecutionLog([]);
-        setShowOutputPanel(true); // Auto-show output panel
+        setShowOutputPanel(true);
 
         const log: string[] = [];
         const addLog = (message: string) => {
@@ -903,6 +994,35 @@ const WorkflowCanvasInner: React.FC = () => {
                 {/* Divider */}
                 <div style={{ width: '1px', height: '32px', backgroundColor: '#555' }} />
 
+                {/* Database Nodes Status Indicator */}
+                {loadingGeneratedNodes && (
+                    <div style={{
+                        fontSize: '11px',
+                        color: '#888',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 8px',
+                    }}>
+                        <span>⏳ Loading database nodes...</span>
+                    </div>
+                )}
+                {!loadingGeneratedNodes && generatedNodes.length > 0 && (
+                    <div style={{
+                        fontSize: '11px',
+                        color: '#00897b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 8px',
+                        backgroundColor: '#00897b22',
+                        borderRadius: '4px',
+                        border: '1px solid #00897b',
+                    }}>
+                        <span>✓ {generatedNodes.length} database node{generatedNodes.length !== 1 ? 's' : ''}</span>
+                    </div>
+                )}
+
                 {/* Status Indicator */}
                 <div style={{
                     padding: '6px 12px',
@@ -969,8 +1089,8 @@ const WorkflowCanvasInner: React.FC = () => {
                     onConnect={onConnect}
                     onDrop={onDrop}
                     onDragOver={onDragOver}
-                    nodeTypes={customNodeTypes} // ← CRITICAL: Use custom node types
-                    isValidConnection={isValidConnection} // ← Validates connections while dragging
+                    nodeTypes={customNodeTypes} // ← CRITICAL: Use dynamic node types (static + database)
+                    isValidConnection={isValidConnection}
                     fitView
                     snapToGrid
                     snapGrid={[15, 15]}
@@ -982,37 +1102,40 @@ const WorkflowCanvasInner: React.FC = () => {
                         style: { stroke: '#00897b', strokeWidth: 2 },
                     }}
                 >
-                {/* Grid background (Unreal Engine style) */}
-                <Background
-                    variant={BackgroundVariant.Dots}
-                    gap={20}
-                    size={1}
-                    color="#404040"
-                />
+                    {/* Grid background (Unreal Engine style) */}
+                    <Background
+                        variant={BackgroundVariant.Dots}
+                        gap={20}
+                        size={1}
+                        color="#404040"
+                    />
 
-                {/* Zoom/Pan controls */}
-                <Controls
-                    style={{
-                        backgroundColor: '#2a2a2a',
-                        border: '1px solid #404040',
-                    }}
-                />
+                    {/* Zoom/Pan controls */}
+                    <Controls
+                        style={{
+                            backgroundColor: '#2a2a2a',
+                            border: '1px solid #404040',
+                        }}
+                    />
 
-                {/* Minimap with category colors */}
-                <MiniMap
-                    nodeColor={(node) => {
-                        const nodeDef = getNodeType(node.type || 'default');
-                        if (nodeDef) {
-                            return getCategoryColor(nodeDef.category);
-                        }
-                        return '#666666';
-                    }}
-                    style={{
-                        backgroundColor: '#1a1a1a',
-                        border: '1px solid #404040',
-                    }}
-                    maskColor="rgba(26, 26, 26, 0.6)"
-                />
+                    {/* Minimap with category colors (supports database nodes) */}
+                    <MiniMap
+                        nodeColor={(node) => {
+                            const nodeDef = getNodeType(node.type || 'default') ||
+                                generatedNodes.find((n) => n.type === node.type);
+                            if (nodeDef) {
+                                // Cast to NodeCategory for getCategoryColor
+                                const category = (nodeDef.category || NodeCategory.QUERY) as NodeCategory;
+                                return getCategoryColor(category);
+                            }
+                            return '#666666';
+                        }}
+                        style={{
+                            backgroundColor: '#1a1a1a',
+                            border: '1px solid #404040',
+                        }}
+                        maskColor="rgba(26, 26, 26, 0.6)"
+                    />
                 </ReactFlow>
             </div>
 
@@ -1142,12 +1265,12 @@ const WorkflowCanvasInner: React.FC = () => {
                                         whiteSpace: 'pre-wrap',
                                         color: line.includes('✅') ? '#00c853'
                                             : line.includes('❌') ? '#f44336'
-                                            : line.includes('▶') ? '#2196f3'
-                                            : line.includes('═') ? '#00897b'
-                                            : line.includes('📥') ? '#ff9800'
-                                            : line.includes('📤') ? '#4caf50'
-                                            : line.includes('⚙️') ? '#9c27b0'
-                                            : '#cccccc',
+                                                : line.includes('▶') ? '#2196f3'
+                                                    : line.includes('═') ? '#00897b'
+                                                        : line.includes('📥') ? '#ff9800'
+                                                            : line.includes('📤') ? '#4caf50'
+                                                                : line.includes('⚙️') ? '#9c27b0'
+                                                                    : '#cccccc',
                                     }}
                                 >
                                     {line}

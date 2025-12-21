@@ -1,0 +1,272 @@
+openapi: 3.0.3
+info:
+  title: Dummy Intel Provider API
+  version: "1.0.0"
+  description: |
+    Dummy provider used to validate EasyCall's OpenAPI upload, parsing, node generation,
+    and frontend node palette integration.
+
+servers:
+  - url: https://api.dummyintel.local/v1
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: Intelligence
+    description: Intelligence lookups for testing
+  - name: Compliance
+    description: Compliance checks for testing
+
+paths:
+  /health:
+    get:
+      tags: [Intelligence]
+      summary: Health check
+      description: Basic health check endpoint (no inputs)
+      operationId: health_check
+      responses:
+        "200":
+          description: Service health response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /addresses/{address}/profile:
+    get:
+      tags: [Intelligence]
+      summary: Get address profile
+      description: Returns a basic profile for a blockchain address (tests path + query params).
+      operationId: get_address_profile
+      parameters:
+        - name: address
+          in: path
+          required: true
+          description: Blockchain address to look up
+          schema:
+            type: string
+            example: "bc1qexampleaddress0000000000000000000000"
+        - name: chain
+          in: query
+          required: true
+          description: Blockchain network identifier
+          schema:
+            type: string
+            enum: ["bitcoin", "ethereum", "solana"]
+        - name: includeRisk
+          in: query
+          required: false
+          description: Include risk fields in the response
+          schema:
+            type: boolean
+            default: true
+      responses:
+        "200":
+          description: Address profile found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressProfile"
+
+  /addresses/{address}/transactions:
+    get:
+      tags: [Intelligence]
+      summary: List address transactions
+      description: Returns a list of transactions for an address (tests array output).
+      operationId: list_address_transactions
+      parameters:
+        - name: address
+          in: path
+          required: true
+          description: Blockchain address
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Max results
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 25
+        - name: cursor
+          in: query
+          required: false
+          description: Pagination cursor
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transactions response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionListResponse"
+
+  /compliance/screening:
+    post:
+      tags: [Compliance]
+      summary: Run compliance screening
+      description: Tests requestBody mapping + response outputs.
+      operationId: run_compliance_screening
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScreeningRequest"
+      responses:
+        "201":
+          description: Screening created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScreeningResponse"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      name: X-API-Key
+      in: header
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:
+          type: string
+          enum: ["ok"]
+        timestamp:
+          type: string
+          format: date-time
+
+    AddressProfile:
+      type: object
+      required: [address, chain, entity, risk]
+      properties:
+        address:
+          type: string
+          description: Blockchain address
+        chain:
+          type: string
+          description: Blockchain network
+        entity:
+          $ref: "#/components/schemas/Entity"
+        risk:
+          $ref: "#/components/schemas/RiskScore"
+        labels:
+          type: array
+          description: Free-form labels
+          items:
+            type: string
+
+    Entity:
+      type: object
+      required: [name, category]
+      properties:
+        name:
+          type: string
+          example: "Example Exchange"
+        category:
+          type: string
+          enum: ["exchange", "mixer", "service", "unknown"]
+        website:
+          type: string
+          format: uri
+
+    RiskScore:
+      type: object
+      required: [score, level]
+      properties:
+        score:
+          type: number
+          minimum: 0
+          maximum: 100
+          example: 72.5
+        level:
+          type: string
+          enum: ["low", "medium", "high"]
+        reasons:
+          type: array
+          items:
+            type: string
+
+    Transaction:
+      type: object
+      required: [txid, timestamp, amount, direction]
+      properties:
+        txid:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        amount:
+          type: number
+          example: 0.1234
+        direction:
+          type: string
+          enum: ["in", "out"]
+        counterpartyAddress:
+          type: string
+
+    TransactionListResponse:
+      type: object
+      required: [address, transactions]
+      properties:
+        address:
+          type: string
+        nextCursor:
+          type: string
+          nullable: true
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+
+    ScreeningRequest:
+      type: object
+      required: [subjectType, subjectValue]
+      properties:
+        subjectType:
+          type: string
+          enum: ["address", "entity"]
+        subjectValue:
+          type: string
+          description: Address or entity name
+        chain:
+          type: string
+          enum: ["bitcoin", "ethereum", "solana"]
+        caseReference:
+          type: string
+          description: Investigator/case ref
+
+    ScreeningResponse:
+      type: object
+      required: [screeningId, status, createdAt, results]
+      properties:
+        screeningId:
+          type: string
+          example: "scr_123456"
+        status:
+          type: string
+          enum: ["queued", "running", "complete"]
+        createdAt:
+          type: string
+          format: date-time
+        results:
+          type: object
+          properties:
+            matched:
+              type: boolean
+            matchConfidence:
+              type: number
+              minimum: 0
+              maximum: 1
+            matchedLists:
+              type: array
+              items:
+                type: string

@@ -702,7 +702,8 @@ uploadForm.addEventListener('submit', async (e) => {
         }
         
         const uploadData = await uploadResponse.json();
-        const specId = uploadData.id;
+        console.log('Upload response:', uploadData);  // Debug
+        const specId = uploadData.uuid || uploadData.id;  // Try both
         
         // Step 2: Parse
         updateStep(2);
@@ -728,7 +729,7 @@ uploadForm.addEventListener('submit', async (e) => {
         progressBar.style.width = '90%';
         progressText.textContent = 'Generating nodes...';
         
-        const generateResponse = await fetch(`/api/v1/integrations/specs/${specId}/generate_nodes/`, {
+        const generateResponse = await fetch(`/api/v1/integrations/specs/${specId}/generate/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrftoken,

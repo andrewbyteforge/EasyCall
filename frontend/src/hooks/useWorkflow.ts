@@ -3,12 +3,14 @@
 // =============================================================================
 // Custom hook for managing workflow state and operations.
 // Handles nodes, edges, viewport, and workflow CRUD operations.
+// Supports both static nodes AND dynamic database-generated nodes.
 // =============================================================================
 
 import { useState, useCallback, useMemo } from 'react';
 import { Node, Edge, Viewport, applyNodeChanges, applyEdgeChanges, addEdge } from 'reactflow';
 import { workflowApi, Workflow } from '../api/workflow_api';
-import { getAllNodeTypes } from '../types/node_types';
+import { getAllNodeTypes, getNodeType } from '../types/node_types';
+import { useGeneratedNodes } from './useProviders';
 
 // =============================================================================
 // HOOK
@@ -29,6 +31,12 @@ export const useWorkflow = () => {
     const [lastSavedState, setLastSavedState] = useState<string>('');
 
     // ---------------------------------------------------------------------------
+    // FETCH DATABASE NODES - For dynamic node support
+    // ---------------------------------------------------------------------------
+
+    const { nodes: generatedNodes } = useGeneratedNodes();
+
+    // ---------------------------------------------------------------------------
     // COMPUTED PROPERTIES
     // ---------------------------------------------------------------------------
 
@@ -47,7 +55,7 @@ export const useWorkflow = () => {
     const name = workflowName;
 
     // ---------------------------------------------------------------------------
-    // DELETE NODE ⭐ NEW
+    // DELETE NODE
     // ---------------------------------------------------------------------------
 
     const deleteNode = useCallback((nodeId: string) => {
@@ -63,38 +71,79 @@ export const useWorkflow = () => {
     }, []);
 
     // ---------------------------------------------------------------------------
-    // ADD NODE AT POSITION (Drag-and-Drop)
+    // ADD NODE AT POSITION (Drag-and-Drop) - Supports static + database nodes
     // ---------------------------------------------------------------------------
 
     const addNodeAtPosition = useCallback(
         (nodeType: string, position: { x: number; y: number }) => {
-            // Get all node type definitions
-            const allNodeTypes = getAllNodeTypes();
-            const nodeDefinition = allNodeTypes.find((n) => n.type === nodeType);
+            // Try to find node definition in static nodes first
+            let nodeDefinition = getNodeType(nodeType);
+
+            // If not found in static nodes, check database-generated nodes
+            if (!nodeDefinition) {
+                const generatedNode = generatedNodes.find((n) => n.type === nodeType);
+                if (generatedNode) {
+                    // Convert GeneratedNodeDefinition to NodeTypeDefinition format
+                    nodeDefinition = {
+                        type: generatedNode.type,
+                        category: generatedNode.category as any,
+                        provider: generatedNode.provider as any,
+                        name: generatedNode.name,
+                        icon: generatedNode.visual.icon,
+                        color: generatedNode.visual.color,
+                        description: generatedNode.description,
+                        visual: generatedNode.visual,
+                        documentation: {
+                            name: generatedNode.name,
+                            description: generatedNode.description,
+                            longDescription: generatedNode.description,
+                            usage: `Connect inputs → Execute → Use outputs`,
+                            examples: [`Query ${generatedNode.provider} API`],
+                        },
+                        inputs: generatedNode.inputs.map((pin) => ({
+                            id: pin.id,
+                            label: pin.label,
+                            type: pin.type as any,
+                            required: pin.required,
+                            description: pin.description,
+                        })),
+                        outputs: generatedNode.outputs.map((pin) => ({
+                            id: pin.id,
+                            label: pin.label,
+                            type: pin.type as any,
+                            description: pin.description,
+                        })),
+                        configuration: generatedNode.configuration || [],
+                    };
+                }
+            }
 
             if (!nodeDefinition) {
                 console.error('❌ Unknown node type:', nodeType);
+                console.log('Available static nodes:', getAllNodeTypes().map(n => n.type));
+                console.log('Available database nodes:', generatedNodes.map(n => n.type));
                 return;
             }
 
             // Generate unique ID
             const id = `${nodeType}_${Date.now()}`;
 
-            // Snap to grid (10x10)
+            // Snap to grid (15x15 to match React Flow snap settings)
             const snappedPosition = {
-                x: Math.round(position.x / 10) * 10,
-                y: Math.round(position.y / 10) * 10,
+                x: Math.round(position.x / 15) * 15,
+                y: Math.round(position.y / 15) * 15,
             };
 
-            // Create node data matching UE5Node component expectations
+            // Create node data matching BaseNode component expectations
             const newNode: Node = {
                 id,
-                type: 'default',
+                type: nodeType, // Use the actual node type so React Flow uses correct component
                 position: snappedPosition,
                 data: {
                     label: nodeDefinition.name,
                     category: nodeDefinition.category,
                     icon: nodeDefinition.icon,
+                    description: nodeDefinition.description,
                     nodeType: nodeType,
 
                     // Map inputs from definition
@@ -113,10 +162,14 @@ export const useWorkflow = () => {
                         color: output.type, // Use type as color key
                     })),
 
+                    // Include configuration fields for editable nodes
+                    configuration: nodeDefinition.configuration || [],
+                    configValues: {},
+
                     // Initialize with default properties
                     properties: [],
 
-                    // ⭐ ADD DELETE HANDLER
+                    // Add delete handler
                     onDelete: () => deleteNode(id),
                 },
             };
@@ -125,7 +178,7 @@ export const useWorkflow = () => {
 
             console.log('✅ Node added:', nodeDefinition.name, 'at', snappedPosition);
         },
-        [deleteNode]
+        [deleteNode, generatedNodes]
     );
 
     // ---------------------------------------------------------------------------
@@ -301,12 +354,13 @@ export const useWorkflow = () => {
         const exampleNodes = [
             {
                 id: '1',
-                type: 'default',
+                type: 'single_address', // ← Use actual node type
                 position: { x: 100, y: 100 },
                 data: {
                     label: 'Single Address',
                     category: 'input',
                     icon: '📍',
+                    inputs: [],
                     outputs: [
                         { id: 'address', label: 'Address', type: 'address', color: 'address' },
                         { id: 'network', label: 'Network', type: 'string', color: 'data' },
@@ -315,12 +369,12 @@ export const useWorkflow = () => {
                         { key: 'Address', value: '0x742d35Cc...' },
                         { key: 'Network', value: 'Ethereum' },
                     ],
-                    onDelete: () => deleteNode('1'), // ⭐ ADD DELETE HANDLER
+                    onDelete: () => deleteNode('1'),
                 },
             },
             {
                 id: '2',
-                type: 'default',
+                type: 'trm_total_exposure', // ← Use actual node type
                 position: { x: 400, y: 80 },
                 data: {
                     label: 'Total Exposure',
@@ -337,12 +391,12 @@ export const useWorkflow = () => {
                         { key: 'Provider', value: 'TRM Labs' },
                         { key: 'Timeout', value: '30s' },
                     ],
-                    onDelete: () => deleteNode('2'), // ⭐ ADD DELETE HANDLER
+                    onDelete: () => deleteNode('2'),
                 },
             },
             {
                 id: '3',
-                type: 'default',
+                type: 'excel_export', // ← Use actual node type
                 position: { x: 750, y: 100 },
                 data: {
                     label: 'Excel Export',
@@ -351,11 +405,12 @@ export const useWorkflow = () => {
                     inputs: [
                         { id: 'data', label: 'Data', type: 'data', color: 'data' },
                     ],
+                    outputs: [],
                     properties: [
                         { key: 'Format', value: 'XLSX' },
                         { key: 'Include Headers', value: 'Yes' },
                     ],
-                    onDelete: () => deleteNode('3'), // ⭐ ADD DELETE HANDLER
+                    onDelete: () => deleteNode('3'),
                 },
             },
         ];
@@ -437,8 +492,8 @@ export const useWorkflow = () => {
         newWorkflow, // Alias
         executeWorkflow,
         createExampleNodes, // Create UE5-style test nodes
-        addNodeAtPosition, // Drag-and-drop handler
-        deleteNode, // ⭐ NEW: Delete node handler
+        addNodeAtPosition, // Drag-and-drop handler (supports static + database nodes)
+        deleteNode, // Delete node handler
 
         // Loading states
         isSaving,

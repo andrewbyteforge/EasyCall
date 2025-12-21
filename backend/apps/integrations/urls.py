@@ -1,7 +1,7 @@
 # =============================================================================
 # FILE: backend/apps/integrations/urls.py
 # =============================================================================
-# URL patterns for provider management endpoints.
+# URL patterns for integration management endpoints.
 # =============================================================================
 """
 URL configuration for the integrations application.
@@ -19,6 +19,7 @@ app_name = "integrations"
 
 router = DefaultRouter()
 router.register(r"specs", views.OpenAPISpecViewSet, basename="spec")
+router.register(r"nodes", views.AvailableNodesViewSet, basename="available-nodes")
 
 # =============================================================================
 # URL PATTERNS

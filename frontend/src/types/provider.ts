@@ -24,6 +24,8 @@ export interface OpenAPISpec {
     updated_at: string;
 }
 
+
+
 /**
  * Lightweight version for list views (no parsed_data).
  */
@@ -230,3 +232,44 @@ export interface PaginatedResponse<T> {
     previous: string | null;
     results: T[];
 }
+
+export async function getAllGeneratedNodes(): Promise<GeneratedNodeDefinition[]> {
+    console.log('[API] Fetching nodes from:', 'http://localhost:8000/api/v1/integrations/nodes/grouped_by_provider/');
+
+    const response = await fetch('http://localhost:8000/api/v1/integrations/nodes/grouped_by_provider/');
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch nodes: ${response.status} ${response.statusText}`);
+    }
+
+    const providersData = await response.json();
+    console.log('[API] Received providers:', providersData);
+
+    const allNodes: GeneratedNodeDefinition[] = [];
+
+    providersData.forEach((providerGroup: any) => {
+        providerGroup.nodes.forEach((node: any) => {
+            allNodes.push({
+                type: node.node_type,
+                name: node.display_name,
+                category: 'query' as const,
+                provider: providerGroup.provider,
+                description: node.description,
+                inputs: [],
+                outputs: [],
+                configuration: [],
+                visual: {
+                    icon: node.icon,
+                    color: node.color,
+                    width: 200,
+                    height: 120,
+                },
+            });
+        });
+    });
+
+    console.log('[API] Converted to', allNodes.length, 'node definitions');
+
+    return allNodes;
+}
+

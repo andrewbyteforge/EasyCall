@@ -294,3 +294,4 @@ nul
 
 # Root lockfile (keep the one in /frontend instead)
 package-lock.json
+

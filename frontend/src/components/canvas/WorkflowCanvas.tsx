@@ -38,6 +38,7 @@ import {
     NodeCategory,
 } from '../../types/node_types';
 import { useGeneratedNodes } from '../../hooks/useProviders';
+import type { GeneratedNodeDefinition } from '../../types/provider';
 
 // Import your custom BaseNode component
 import BaseNode from '../nodes/BaseNode';
@@ -85,6 +86,20 @@ const STATIC_NODE_TYPES: NodeTypes = {
     pdf_export: BaseNode,
     console_log: BaseNode,
 };
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Helper to safely find a pin by ID from either NodeTypeDefinition or GeneratedNodeDefinition
+ */
+function findPin(
+    pins: any[],
+    pinId: string
+): { id: string; type: DataType } | undefined {
+    return pins.find((pin) => pin.id === pinId);
+}
 
 // =============================================================================
 // DATA TYPE COMPATIBILITY MATRIX
@@ -189,18 +204,11 @@ const WorkflowCanvasInner: React.FC = () => {
         // Check each node for required inputs
         for (const node of nodes) {
             // Try static nodes first
-            let nodeDefinition = getNodeType(node.type || '');
+            let nodeDefinition: NodeTypeDefinition | GeneratedNodeDefinition | undefined = getNodeType(node.type || '');
 
             // If not found in static nodes, check database nodes
             if (!nodeDefinition) {
-                const generatedNode = generatedNodes.find((n) => n.type === node.type);
-                if (generatedNode) {
-                    // Use database node's inputs for validation
-                    nodeDefinition = {
-                        inputs: generatedNode.inputs,
-                        outputs: generatedNode.outputs,
-                    } as any;
-                }
+                nodeDefinition = generatedNodes.find((n) => n.type === node.type);
             }
 
             if (!nodeDefinition) continue;
@@ -689,26 +697,25 @@ const WorkflowCanvasInner: React.FC = () => {
         }
 
         // Get node definitions (supports both static and database nodes)
-        const sourceNodeDef = getNodeType(sourceNode.type || '') ||
-            generatedNodes.find((n) => n.type === sourceNode.type);
-        const targetNodeDef = getNodeType(targetNode.type || '') ||
-            generatedNodes.find((n) => n.type === targetNode.type);
+        const sourceNodeDef: NodeTypeDefinition | GeneratedNodeDefinition | undefined =
+            getNodeType(sourceNode.type || '') || generatedNodes.find((n) => n.type === sourceNode.type);
+        const targetNodeDef: NodeTypeDefinition | GeneratedNodeDefinition | undefined =
+            getNodeType(targetNode.type || '') || generatedNodes.find((n) => n.type === targetNode.type);
 
         if (!sourceNodeDef || !targetNodeDef) {
             return false;
         }
 
-        // Find output and input pin definitions
-        // Type assertion needed because database nodes use GeneratedNodePin which has compatible structure
-        const outputPin = sourceNodeDef.outputs.find((o: any) => o.id === sourceHandle);
-        const inputPin = targetNodeDef.inputs.find((i: any) => i.id === targetHandle);
+        // Find output and input pin definitions using helper function
+        const outputPin = findPin(sourceNodeDef.outputs, sourceHandle);
+        const inputPin = findPin(targetNodeDef.inputs, targetHandle);
 
         if (!outputPin || !inputPin) {
             console.log('[VALIDATE] Pin not found:', sourceHandle, '->', targetHandle);
             return false;
         }
 
-        // Check type compatibility (cast to DataType for compatibility check)
+        // Check type compatibility
         const isCompatible = areTypesCompatible(outputPin.type as DataType, inputPin.type as DataType);
 
         if (!isCompatible) {
@@ -1089,7 +1096,7 @@ const WorkflowCanvasInner: React.FC = () => {
                     onConnect={onConnect}
                     onDrop={onDrop}
                     onDragOver={onDragOver}
-                    nodeTypes={customNodeTypes} // ← CRITICAL: Use dynamic node types (static + database)
+                    nodeTypes={customNodeTypes}
                     isValidConnection={isValidConnection}
                     fitView
                     snapToGrid
@@ -1121,10 +1128,9 @@ const WorkflowCanvasInner: React.FC = () => {
                     {/* Minimap with category colors (supports database nodes) */}
                     <MiniMap
                         nodeColor={(node) => {
-                            const nodeDef = getNodeType(node.type || 'default') ||
-                                generatedNodes.find((n) => n.type === node.type);
+                            const nodeDef: NodeTypeDefinition | GeneratedNodeDefinition | undefined =
+                                getNodeType(node.type || 'default') || generatedNodes.find((n) => n.type === node.type);
                             if (nodeDef) {
-                                // Cast to NodeCategory for getCategoryColor
                                 const category = (nodeDef.category || NodeCategory.QUERY) as NodeCategory;
                                 return getCategoryColor(category);
                             }

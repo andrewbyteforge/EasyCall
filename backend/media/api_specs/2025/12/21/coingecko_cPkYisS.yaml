@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: CoinGecko API
+  version: v3
+  description: Cryptocurrency price and market data API
+
+servers:
+  - url: https://api.coingecko.com/api/v3
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-cg-demo-api-key
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  # ============================================
+  # ENDPOINT 1: Ping
+  # ============================================
+  /ping:
+    get:
+      summary: Check API server status
+      operationId: coingecko_ping
+      tags: [System]
+      responses:
+        '200':
+          description: Status OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gecko_says:
+                    type: string
+
+  # ============================================
+  # ENDPOINT 2: Simple Price
+  # ============================================
+  /simple/price:
+    get:
+      summary: Get coin prices
+      operationId: coingecko_simple_price
+      tags: [Coins]
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: vs_currencies
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: include_market_cap
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ============================================
+  # ENDPOINT 3: Coin Data by ID
+  # ============================================
+  /coins/{id}:
+    get:
+      summary: Get coin data by ID
+      operationId: coingecko_coin_data
+      tags: [Coins]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Coin ID (e.g., bitcoin)
+          schema:
+            type: string
+        - name: localization
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: tickers
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  symbol:
+                    type: string
+                  name:
+                    type: string
+                  market_cap_rank:
+                    type: integer
+                  market_data:
+                    type: object
+
+  # ============================================
+  # ENDPOINT 4: Coin Market Chart
+  # ============================================
+  /coins/{id}/market_chart:
+    get:
+      summary: Get historical market data
+      operationId: coingecko_market_chart
+      tags: [Coins]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: vs_currency
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: query
+          required: true
+          description: Data up to number of days ago (1/7/14/30/90/180/365/max)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prices:
+                    type: array
+                    items:
+                      type: array
+                      items:
+                        type: number
+                  market_caps:
+                    type: array
+                  total_volumes:
+                    type: array

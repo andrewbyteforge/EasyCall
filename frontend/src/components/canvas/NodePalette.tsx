@@ -57,12 +57,36 @@ interface CategoryConfig {
  * Convert GeneratedNodeDefinition (from database) to NodeTypeDefinition (for canvas).
  * This allows database nodes to work with existing node rendering logic.
  */
+/**
+ * Convert GeneratedNodeDefinition (from database) to NodeTypeDefinition (for canvas).
+ * This allows database nodes to work with existing node rendering logic.
+ */
 function convertGeneratedNodeToNodeType(
     generatedNode: GeneratedNodeDefinition
 ): NodeTypeDefinition {
+    // Map database category string to NodeCategory enum
+    let nodeCategory: NodeCategory;
+
+    switch (generatedNode.category.toLowerCase()) {
+        case 'config':
+        case 'configuration':
+            nodeCategory = NodeCategory.CONFIGURATION;
+            break;
+        case 'input':
+            nodeCategory = NodeCategory.INPUT;
+            break;
+        case 'output':
+            nodeCategory = NodeCategory.OUTPUT;
+            break;
+        case 'query':
+        default:
+            nodeCategory = NodeCategory.QUERY;
+            break;
+    }
+
     return {
         type: generatedNode.type,
-        category: NodeCategory.QUERY, // Generated nodes are always query nodes
+        category: nodeCategory,  // ✅ Use mapped category, not hardcoded QUERY
         provider: generatedNode.provider as any,
 
         // Convenience properties
@@ -77,7 +101,7 @@ function convertGeneratedNodeToNodeType(
             icon: generatedNode.visual.icon,
             color: generatedNode.visual.color,
             width: generatedNode.visual.width,
-            height: generatedNode.visual.height,
+            height: typeof generatedNode.visual.height === 'string' ? 120 : generatedNode.visual.height,
         },
         documentation: {
             name: generatedNode.name,

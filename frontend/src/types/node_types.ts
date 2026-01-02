@@ -90,7 +90,7 @@ export interface NodeVisual {
     icon: string;
     color: string;
     width: number;
-    height: number;
+    height: number | string;
 }
 
 /**

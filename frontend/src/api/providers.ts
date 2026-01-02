@@ -264,16 +264,16 @@ export async function getAllGeneratedNodes(): Promise<GeneratedNodeDefinition[]>
                 const inputs = (node.inputs || []).map((pin: any) => ({
                     id: pin.id,
                     label: pin.label,
-                    type: pin.type || 'ANY',
+                    type: pin.type ? pin.type.toLowerCase() : 'any',  // ✅ Convert to lowercase
                     required: pin.required !== undefined ? pin.required : false,
                     description: pin.description || '',
                 }));
 
-                // ⭐ FIX: Backend returns "outputs" not "output_pins" (thanks to serializer mapping)
+                // Map outputs from backend
                 const outputs = (node.outputs || []).map((pin: any) => ({
                     id: pin.id,
                     label: pin.label,
-                    type: pin.type || 'ANY',
+                    type: pin.type ? pin.type.toLowerCase() : 'any',  // ✅ Convert to lowercase
                     required: false,
                     description: pin.description || '',
                 }));
@@ -284,7 +284,7 @@ export async function getAllGeneratedNodes(): Promise<GeneratedNodeDefinition[]>
                 allNodes.push({
                     type: node.node_type,
                     name: node.display_name,
-                    category: 'query' as const,
+                    category: node.category || 'query',
                     provider: providerGroup.provider,
                     description: node.description,
                     inputs,  // ← Now includes real pins!

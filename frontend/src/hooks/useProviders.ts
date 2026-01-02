@@ -94,15 +94,16 @@ function convertAPINodeToDefinition(apiNode: any): GeneratedNodeDefinition {
     return {
         type: apiNode.node_type || apiNode.type,
         name: apiNode.display_name || apiNode.name,
-        category: apiNode.category as 'query',
+        category: apiNode.category || 'query',  
         provider: apiNode.provider_name || apiNode.provider,
         description: apiNode.description || '',
 
         // ⭐ CRITICAL: Properly map inputs from API response
+        // ⭐ CRITICAL: Properly map inputs from API response
         inputs: (apiNode.inputs || []).map((input: any) => ({
             id: input.id,
             label: input.label,
-            type: input.type,
+            type: input.type ? input.type.toLowerCase() : 'any',  // ✅ Add .toLowerCase()
             required: input.required !== undefined ? input.required : false,
             description: input.description || '',
         })),
@@ -111,7 +112,7 @@ function convertAPINodeToDefinition(apiNode: any): GeneratedNodeDefinition {
         outputs: (apiNode.outputs || []).map((output: any) => ({
             id: output.id,
             label: output.label,
-            type: output.type,
+            type: output.type ? output.type.toLowerCase() : 'any',  // ✅ Add .toLowerCase()
             required: false,
             description: output.description || '',
         })),

@@ -243,6 +243,22 @@ class WorkflowExecutor:
                     'api_key': config.get('api_key', ''),
                     'authenticated': bool(config.get('api_key'))
                 }
+            }            
+            
+        # ═══════════════════════════════════════════════════════════════
+        # DATABASE-GENERATED CONFIG NODES
+        # ═══════════════════════════════════════════════════════════════
+
+        if node_type.endswith('_config'):
+            # Configuration nodes (like coingecko_config)
+            return {
+                'credentials': {
+                    'type': 'apikey',
+                    'api_key': config.get('api_key', ''),
+                    'header': config.get('header_name', 'x-cg-demo-api-key'),
+                    'base_url': config.get('base_url', ''),
+                    'authenticated': bool(config.get('api_key'))
+                }
             }
 
         # ═══════════════════════════════════════════════════════════════
@@ -323,356 +339,195 @@ class WorkflowExecutor:
                 self._log(f"     {key}: {display}")
             return {'logged': True, 'data': inputs}
 
-
-        # ═══════════════════════════════════════════════════════════════
-        # DATABASE-GENERATED NODES (NEW)
-        # ═══════════════════════════════════════════════════════════════
-        
         # Check if this is a database-generated node
-        if self._is_database_node(node_type):
-            return self._execute_database_node(node_type, node_id, inputs, config)
+        # ═══════════════════════════════════════════════════════════════
+        # DATABASE-GENERATED NODES (from OpenAPI specs)
+        # ═══════════════════════════════════════════════════════════════
+
+        # Check if this is a database-generated node
+        from apps.integrations.models import OpenAPISpec
+
+        try:
+            # Parse node_type: "etherscan_getaddresstokenbalance"
+            # Format: {provider}_{operation_id_lowercase}
+            
+            if '_' not in node_type:
+                # Not a database node, return empty
+                return {}
+            
+            # Split on first underscore
+            parts = node_type.split('_', 1)
+            provider = parts[0]
+            operation_id_lower = parts[1] if len(parts) > 1 else ''
+            
+            self._log(f"  [DATABASE] Looking for provider='{provider}', operation_id='{operation_id_lower}'")
+            
+            # Get the OpenAPI spec for this provider
+            spec = OpenAPISpec.objects.filter(
+                provider=provider,
+                is_active=True,
+                is_parsed=True
+            ).first()
+            
+            if not spec:
+                self._log(f"  [DATABASE] No active spec for provider: {provider}")
+                return {}
+            
+            # Find matching endpoint (case-insensitive operation_id match)
+            endpoints = spec.parsed_data.get('endpoints', [])
+            if not endpoints:
+                self._log(f"  [DATABASE] No endpoints in spec for: {provider}")
+                return {}
+            
+            endpoint = None
+            for ep in endpoints:
+                ep_op_id = ep.get('operation_id', '')
+                
+                # Case-insensitive comparison
+                if ep_op_id.lower() == operation_id_lower:
+                    endpoint = ep
+                    break
+            
+            if not endpoint:
+                self._log(f"  [DATABASE] No endpoint found with operation_id matching '{operation_id_lower}'")
+                self._log(f"  [DATABASE] Available: {[e.get('operation_id') for e in endpoints]}")
+                return {}
+            
+            # Found it!
+            self._log(f"  [DATABASE] ✅ Found: {endpoint.get('method')} {endpoint.get('path')}")
+            
+            # Execute using the endpoint data
+            return self._execute_database_node_direct(endpoint, spec, inputs, config)
+            
+        except Exception as e:
+            self._log(f"  [DATABASE] Error: {str(e)}")
+            import traceback
+            self._log(f"  [DATABASE] Traceback: {traceback.format_exc()}")
+            return {}
         
-        # Unknown node type - return empty
-        self._log(f"  ⚠️ Unknown node type: {node_type}")
-        return {}
+        # # Unknown node type - return empty
+        # self._log(f"  ⚠️ Unknown node type: {node_type}")
+        # return {}
 
     # ═══════════════════════════════════════════════════════════════════════
     # DATABASE NODE EXECUTION METHODS
     # ═══════════════════════════════════════════════════════════════════════
 
-    def _is_database_node(self, node_type: str) -> bool:
-        """
-        Check if node_type is a database-generated node.
-        
-        Database nodes follow the pattern: {provider}_{operation_id}
-        Examples:
-            - trm_labs_get_attribution
-            - chainalysis_get_cluster_info
-            - elliptic_get_risk_score
-        
-        Args:
-            node_type: The node type identifier
-            
-        Returns:
-            True if this is a database node, False otherwise
-        """
-        # Known database node providers
-        database_providers = [
-            'trm_labs',
-            'chainalysis',
-            'elliptic',
-            'chainalysis_reactor',
-            'trm',
-        ]
-        
-        # Check if node_type starts with any known provider prefix
-        for provider in database_providers:
-            if node_type.startswith(f"{provider}_"):
-                return True
-        
-        return False
-
     def _execute_database_node(
-        self,
-        node_type: str,
-        node_id: str,
-        inputs: dict,
-        config: dict
-    ) -> dict:
-        """
-        Execute a database-generated node.
-        
-        Process:
-        1. Look up node definition (frozen config first, then database)
-        2. Build HTTP request from definition
-        3. Execute API call
-        4. Map response to outputs
-        
-        Args:
-            node_type: Node type identifier
-            node_id: Unique node instance ID
-            inputs: Input values from connected nodes
-            config: Configuration values
+            self,
+            db_node,
+            input_data: Dict[str, Any],
+            config: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            """
+            Execute a database-generated node using the generic API executor.
             
-        Returns:
-            Dictionary of output values
+            Args:
+                db_node: Dictionary with endpoint configuration from OpenAPISpec
+                input_data: Input values from connected nodes
+                config: Configuration values from node settings
             
-        Raises:
-            NodeExecutionError: If node definition not found or execution fails
-        """
-        
-        self._log(f"  [DATABASE] Executing database node: {node_type}")
-        
-        # Step 1: Get node definition
-        node_def = self._lookup_node_definition(node_type)
-        
-        if not node_def:
-            raise NodeExecutionError(
-                f"Node definition not found for: {node_type}. "
-                f"This node may have been deleted from the provider system."
-            )
-        
-        self._log(f"  [DATABASE] Found definition for {node_def.get('name', node_type)}")
-        
-        # Step 2: Build API request
-        try:
-            request_config = self._build_api_request(node_def, inputs, config)
-        except Exception as e:
-            raise NodeExecutionError(f"Failed to build API request: {str(e)}")
-        
-        # Step 3: Execute API call
-        try:
-            from apps.execution.api_executor import GenericAPIExecutor
+            Returns:
+                Execution results
+            """
+            from apps.execution.api_executor import GenericAPIExecutor, APIExecutionError
             
-            api_executor = GenericAPIExecutor()
-            response = api_executor.execute(request_config)
+            self._log(f"  [EXEC] Executing: {db_node.get('node_type')}")
             
-            self._log(f"  [DATABASE] API call successful")
+            # Get frozen configuration
+            frozen_config = db_node.get('frozen_config', {})
             
-        except Exception as e:
-            raise NodeExecutionError(f"API call failed: {str(e)}")
-        
-        # Step 4: Map response to outputs
-        try:
-            outputs = self._map_api_response(response, node_def)
-            return outputs
-        except Exception as e:
-            raise NodeExecutionError(f"Failed to map response: {str(e)}")
-
-    def _lookup_node_definition(self, node_type: str) -> Optional[dict]:
-        """
-        Look up node definition from frozen config or database.
-        
-        Priority:
-        1. Frozen configuration (from workflow.canvas_data['_frozen_nodes'])
-        2. Current database definition (from OpenAPISpec)
-        
-        Frozen configs ensure that saved workflows continue to work even if
-        the provider is updated or deleted.
-        
-        Args:
-            node_type: Node type identifier
+            # Extract API details
+            method = frozen_config.get('method', 'GET')
+            endpoint = frozen_config.get('endpoint', frozen_config.get('path', ''))
+            base_url = frozen_config.get('base_url', '')
             
-        Returns:
-            Node definition dictionary, or None if not found
-        """
-        # Check frozen config first (from workflow save)
-        canvas_data = self.workflow.canvas_data
-        if isinstance(canvas_data, dict):
-            frozen_nodes = canvas_data.get('_frozen_nodes', {})
+            self._log(f"  [API] {method} {base_url}{endpoint}")
             
-            if node_type in frozen_nodes:
-                self._log(f"  [FROZEN] Using frozen definition for {node_type}")
-                return frozen_nodes[node_type]
-        
-        # Fall back to current database definition
-        from apps.integrations.models import OpenAPISpec
-        from apps.integrations.node_generator import NodeGenerator
-        
-        # Extract provider from node_type
-        # Examples: "trm_labs_get_attribution" -> "trm_labs"
-        #           "chainalysis_get_cluster_info" -> "chainalysis"
-        parts = node_type.split('_')
-        if len(parts) >= 2:
-            # Handle multi-word providers like "trm_labs"
-            provider = '_'.join(parts[:2])
-        else:
-            provider = parts[0] if parts else ''
-        
-        # Find active spec for this provider
-        spec = OpenAPISpec.objects.filter(
-            provider=provider,
-            is_active=True,
-            is_parsed=True
-        ).first()
-        
-        if not spec:
-            # Try without underscore (e.g., "trmlabs" instead of "trm_labs")
-            provider_no_underscore = provider.replace('_', '')
-            spec = OpenAPISpec.objects.filter(
-                provider=provider_no_underscore,
-                is_active=True,
-                is_parsed=True
-            ).first()
-        
-        if not spec:
-            self._log(f"  [DATABASE] No active spec found for provider: {provider}")
-            return None
-        
-        # Generate nodes and find matching one
-        generator = NodeGenerator()
-        endpoints = spec.parsed_data.get('endpoints', [])
-        
-        if not endpoints:
-            self._log(f"  [DATABASE] No endpoints in spec for: {provider}")
-            return None
-        
-        nodes = generator.generate_nodes(
-            endpoints=endpoints,
-            provider=provider
-        )
-        
-        for node in nodes:
-            if node['type'] == node_type:
-                self._log(f"  [DATABASE] Using current definition for {node_type}")
-                return node
-        
-        self._log(f"  [DATABASE] Node type {node_type} not found in generated nodes")
-        return None
-
-    def _build_api_request(
-        self,
-        node_def: dict,
-        inputs: dict,
-        config: dict
-    ) -> dict:
-        """
-        Build API request configuration from node definition and inputs.
-        
-        Args:
-            node_def: Node definition from database
-            inputs: Input values from connected nodes
-            config: Configuration values from node
+            # Build request
+            request_config = {
+                'method': method,
+                'url': f"{base_url}{endpoint}",
+                'headers': {},
+                'params': {},
+                'timeout': 30
+            }
             
-        Returns:
-            Request configuration dict for GenericAPIExecutor
-        """
-        from apps.integrations.models import OpenAPISpec
-        
-        # Get endpoint info
-        endpoint_info = node_def.get('endpoint', {})
-        provider = node_def.get('provider', '')
-        
-        # Get provider spec for base URL
-        spec = OpenAPISpec.objects.filter(
-            provider=provider,
-            is_active=True,
-            is_parsed=True
-        ).first()
-        
-        if not spec:
-            raise ValueError(f"Provider spec not found: {provider}")
-        
-        # Get base URL from spec
-        base_url = spec.parsed_data.get('base_url', '')
-        if not base_url:
-            raise ValueError(f"No base URL in spec for provider: {provider}")
-        
-        # Get credentials
-        credentials = inputs.get('credentials', {})
-        
-        # Build URL
-        path = endpoint_info.get('path', '')
-        method = endpoint_info.get('method', 'GET').upper()
-        
-        # Build headers with authentication
-        headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-        
-        # Add authentication header based on provider
-        if provider == 'chainalysis':
-            api_key = credentials.get('api_key', '')
-            if api_key:
-                headers['Token'] = api_key
-        elif provider == 'trm_labs' or provider == 'trm':
-            api_key = credentials.get('api_key', '')
-            # TRM uses Basic auth with API key as username
-            if api_key:
-                import base64
-                auth_str = base64.b64encode(f"{api_key}:".encode()).decode()
-                headers['Authorization'] = f'Basic {auth_str}'
-        
-        # Map inputs to parameters
-        params = {}
-        path_params = {}
-        json_body = None
-        
-        # Get input definitions from node
-        node_inputs = node_def.get('inputs', [])
-        
-        for input_def in node_inputs:
-            input_id = input_def.get('id')
-            if input_id == 'credentials':
-                continue  # Already handled
-            
-            # Get value from inputs
-            value = inputs.get(input_id)
-            if value is None:
-                continue
-            
-            # Determine parameter location (path, query, body)
-            param_in = input_def.get('in', 'query')
-            
-            if param_in == 'path':
-                path_params[input_id] = value
-            elif param_in == 'query':
-                params[input_id] = value
-            elif param_in == 'body':
-                if json_body is None:
-                    json_body = {}
-                json_body[input_id] = value
-        
-        # Substitute path parameters
-        final_path = path
-        for param_name, param_value in path_params.items():
-            final_path = final_path.replace(f"{{{param_name}}}", str(param_value))
-        
-        # Build full URL
-        url = base_url.rstrip('/') + '/' + final_path.lstrip('/')
-        
-        # Add config parameters (like asset, direction, etc.)
-        for key, value in config.items():
-            if key not in params and value is not None:
-                params[key] = value
-        
-        return {
-            'method': method,
-            'url': url,
-            'headers': headers,
-            'params': params if params else None,
-            'json': json_body,
-            'timeout': config.get('timeout', 30)
-        }
-
-    def _map_api_response(self, response: dict, node_def: dict) -> dict:
-        """
-        Map API response to node outputs.
-        
-        Args:
-            response: API response data
-            node_def: Node definition
-            
-        Returns:
-            Dictionary of output values
-        """
-        outputs = {}
-        
-        # Get output definitions
-        node_outputs = node_def.get('outputs', [])
-        
-        # If response is a simple structure, map each output
-        if isinstance(response, dict):
-            for output_def in node_outputs:
-                output_id = output_def.get('id')
+            # Handle authentication
+            credentials = input_data.get('credentials', {})
+            if credentials:
+                auth_type = credentials.get('type', 'apikey')
                 
-                # Try to find this field in response
-                if output_id in response:
-                    outputs[output_id] = response[output_id]
-                # Try camelCase version
-                elif output_id.replace('_', '') in response:
-                    camel_case = output_id.replace('_', '')
-                    outputs[output_id] = response[camel_case]
-        
-        # If no specific outputs mapped, include whole response
-        if not outputs:
-            outputs['response'] = response
-        
-        # Also include the full response as raw_data for debugging
-        outputs['raw_response'] = response
-        
-        return outputs
+                if auth_type == 'apikey':
+                    header_name = credentials.get('header', frozen_config.get('auth_header', 'Authorization'))
+                    api_key = credentials.get('api_key', config.get('api_key', ''))
+                    if api_key:
+                        request_config['headers'][header_name] = api_key
+                        self._log(f"  [AUTH] API Key in {header_name}")
+            
+            # Map parameters
+            input_pins = frozen_config.get('input_pins', [])
+            for pin in input_pins:
+                pin_id = pin['id']
+                pin_type = pin.get('pin_type', 'query')
+                
+                if pin_id == 'credentials':
+                    continue
+                
+                value = input_data.get(pin_id) or config.get(pin_id)
+                
+                if value is not None:
+                    if pin_type == 'path':
+                        request_config['url'] = request_config['url'].replace(
+                            f"{{{pin_id}}}", str(value)
+                        )
+                    elif pin_type == 'query':
+                        request_config['params'][pin_id] = value
+                    elif pin_type == 'body':
+                        if 'json' not in request_config:
+                            request_config['json'] = {}
+                        request_config['json'][pin_id] = value
+            
+            self._log(f"  [PARAMS] {list(request_config['params'].keys())}")
+            
+            # Execute API call
+            try:
+                executor = GenericAPIExecutor()
+                response_data = executor.execute(request_config)
+                
+                self._log(f"  [SUCCESS] API call completed")
+                
+                # Map response to outputs
+                output_pins = frozen_config.get('output_pins', [])
+                results = {}
+                
+                for pin in output_pins:
+                    pin_id = pin['id']
+                    if pin_id == 'response':
+                        results[pin_id] = response_data
+                    elif pin_id == 'gecko_says':
+                        results[pin_id] = response_data.get('gecko_says', response_data)
+                    else:
+                        results[pin_id] = response_data.get(pin_id, response_data)
+                
+                if not results:
+                    results['response'] = response_data
+                
+                return results
+                
+            except APIExecutionError as e:
+                self._log(f"  [ERROR] {str(e)}")
+                return {'error': str(e)}
+            except Exception as e:
+                self._log(f"  [ERROR] {str(e)}")
+                return {'error': str(e)}
+
+
+
+
+
+
+
 
     # ═══════════════════════════════════════════════════════════════════════
     # CHAINALYSIS API METHODS
@@ -782,6 +637,115 @@ class WorkflowExecutor:
                 'cluster_info': [],
                 'count': 0
             }
+            
+            
+    def _execute_database_node_direct(
+        self,
+        endpoint: Dict[str, Any],
+        spec: Any,
+        inputs: Dict[str, Any],
+        config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Execute a database-generated API node directly from endpoint data.
+        
+        Args:
+            endpoint: Endpoint definition from OpenAPISpec.parsed_data
+            spec: OpenAPISpec instance
+            inputs: Resolved input values
+            config: Configuration values
+            
+        Returns:
+            API response data
+        """
+        try:
+            # Get server URL
+            servers = spec.parsed_data.get('servers', [])
+            base_url = servers[0]['url'] if servers else ''
+            
+            if not base_url:
+                return {"error": "No server URL in spec", "status": "failed"}
+            
+            # Get path and method
+            path = endpoint.get('path', '')
+            method = endpoint.get('method', 'GET').upper()
+            url = base_url.rstrip('/') + path
+            
+            self._log(f"  [API] {method} {url}")
+            
+            # === COLLECT PARAMETERS ===
+            params = {}
+            headers = {}
+            parameters = endpoint.get('parameters', [])
+            
+            for param_def in parameters:
+                param_name = param_def.get('name')
+                param_in = param_def.get('in', 'query')
+                param_required = param_def.get('required', False)
+                param_default = param_def.get('default')
+                
+                # Get value from inputs, config, or default
+                value = None
+                if param_name in inputs:
+                    value = inputs[param_name]
+                elif param_name in config:
+                    value = config[param_name]
+                elif param_default is not None:
+                    value = param_default
+                    self._log(f"  [PARAM] Using default for {param_name}: {value}")
+                elif param_required:
+                    self._log(f"  [PARAM] ⚠️ Missing required: {param_name}")
+                    return {"error": f"Missing required parameter: {param_name}"}
+                else:
+                    continue  # Optional with no value
+                
+                # Add to appropriate collection
+                if param_in == 'query':
+                    params[param_name] = value
+                elif param_in == 'header':
+                    headers[param_name] = value
+                elif param_in == 'path':
+                    url = url.replace(f'{{{param_name}}}', str(value))
+            
+            # === HANDLE CREDENTIALS ===
+            if 'credentials' in inputs:
+                creds = inputs['credentials']
+                if isinstance(creds, dict):
+                    api_key = creds.get('api_key', '')
+                    
+                    # Add to params if there's an apikey parameter
+                    param_names = [p.get('name') for p in parameters]
+                    if 'apikey' in param_names:
+                        params['apikey'] = api_key
+                    elif 'api_key' in param_names:
+                        params['api_key'] = api_key
+                    
+                    self._log(f"  [AUTH] Added API key from credentials")
+            
+            # === MAKE REQUEST ===
+            self._log(f"  [REQUEST] Params: {list(params.keys())}")
+            
+            from apps.execution.api_executor import GenericAPIExecutor
+
+            executor = GenericAPIExecutor()
+            response = executor.execute({
+                'method': method,
+                'url': url,
+                'params': params,
+                'headers': headers,
+                'timeout': 30
+            })
+            
+            self._log(f"  [RESPONSE] Status: {response.get('status_code')}")
+            
+            return response.get('data', response)
+            
+        except Exception as e:
+            self._log(f"  [ERROR] Execution failed: {e}")
+            import traceback
+            self._log(f"  [TRACEBACK] {traceback.format_exc()}")
+            return {"error": str(e), "status": "failed"}
+            
 
     def _execute_chainalysis_cluster_balance(self, inputs: dict, config: dict) -> dict:
         """

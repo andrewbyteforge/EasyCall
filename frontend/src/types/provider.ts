@@ -24,8 +24,6 @@ export interface OpenAPISpec {
     updated_at: string;
 }
 
-
-
 /**
  * Lightweight version for list views (no parsed_data).
  */
@@ -168,7 +166,7 @@ export interface PropertySchema {
 export interface GeneratedNodeDefinition {
     type: string;
     name: string;
-    category: 'query';
+    category: 'query' | 'config' | 'configuration' | 'input' | 'output';  // ✅ FIXED: Allow all categories
     provider: string;
     description: string;
     inputs: GeneratedNodePin[];
@@ -178,7 +176,7 @@ export interface GeneratedNodeDefinition {
         icon: string;
         color: string;
         width: number;
-        height: number;
+        height: number | string;
     };
 }
 
@@ -233,6 +231,14 @@ export interface PaginatedResponse<T> {
     results: T[];
 }
 
+/**
+ * Fetch all generated nodes from backend, grouped by provider.
+ * Converts API response to GeneratedNodeDefinition format.
+ */
+/**
+ * Fetch all generated nodes from backend, grouped by provider.
+ * Converts API response to GeneratedNodeDefinition format.
+ */
 export async function getAllGeneratedNodes(): Promise<GeneratedNodeDefinition[]> {
     console.log('[API] Fetching nodes from:', 'http://localhost:8000/api/v1/integrations/nodes/grouped_by_provider/');
 
@@ -252,24 +258,41 @@ export async function getAllGeneratedNodes(): Promise<GeneratedNodeDefinition[]>
             allNodes.push({
                 type: node.node_type,
                 name: node.display_name,
-                category: 'query' as const,
+                category: node.category || 'query',
                 provider: providerGroup.provider,
                 description: node.description,
-                inputs: [],
-                outputs: [],
-                configuration: [],
+                inputs: (node.inputs || []).map((pin: any) => ({
+                    id: pin.id,
+                    label: pin.label,
+                    type: pin.type,
+                    required: pin.required !== undefined ? pin.required : false,
+                    description: pin.description || '',
+                })),
+                outputs: (node.outputs || []).map((pin: any) => ({
+                    id: pin.id,
+                    label: pin.label,
+                    type: pin.type,
+                    required: false,
+                    description: pin.description || '',
+                })),
+                configuration: node.configuration || [],
                 visual: {
-                    icon: node.icon,
-                    color: node.color,
-                    width: 200,
-                    height: 120,
+                    icon: node.icon || '🔌',
+                    color: node.color || '#00897b',
+                    width: node.width || 220,
+                    height: node.height === 'auto' || typeof node.height === 'string' ? 120 : (node.height || 120),
                 },
             });
         });
     });
 
-    console.log('[API] Converted to', allNodes.length, 'node definitions');
+    console.log('[API] Converted to', allNodes.length, 'node definitions with pins');
+
+    if (allNodes.length > 0) {
+        console.log('[API] Sample node:', allNodes[0]);
+        console.log('[API] Sample inputs:', allNodes[0].inputs);
+        console.log('[API] Sample outputs:', allNodes[0].outputs);
+    }
 
     return allNodes;
 }
-

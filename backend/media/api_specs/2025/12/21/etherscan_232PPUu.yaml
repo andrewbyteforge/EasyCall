@@ -1,0 +1,363 @@
+openapi: 3.0.0
+info:
+  title: Etherscan Account API - ERC20 Token Holding
+  version: 2.0.0
+  description: |
+    Retrieves the current ERC-20 token balance for a specified address.
+    
+    **Notes:**
+    - This is a PRO endpoint, available to the Standard Plan and above
+    - This historical endpoint is throttled to 2 calls/s
+    - Supports multiple chains via chainid parameter
+  contact:
+    name: Etherscan API Support
+    url: https://docs.etherscan.io
+  
+  # === CUSTOM EXTENSION: Configuration Node Definition ===
+  x-config-node:
+    enabled: true
+    node_name: "Etherscan Configuration"
+    node_type: "config"
+    description: "Configuration node for Etherscan API authentication and defaults"
+    node_category: "Configuration"
+    icon: "settings"
+    color: "#21325b"
+    parameters:
+      - name: api_key
+        type: string
+        required: true
+        sensitive: true
+        description: "Your Etherscan API key (get from https://etherscan.io/myapikey)"
+        placeholder: "YourApiKeyToken"
+        validation:
+          min_length: 20
+          pattern: "^[A-Z0-9]+$"
+      
+      - name: default_chainid
+        type: string
+        required: false
+        description: "Default chain ID for all requests (1=Ethereum, 8453=Base, etc.)"
+        default: "1"
+        options:
+          - value: "1"
+            label: "Ethereum Mainnet"
+          - value: "5"
+            label: "Goerli Testnet"
+          - value: "11155111"
+            label: "Sepolia Testnet"
+          - value: "56"
+            label: "BSC Mainnet"
+          - value: "137"
+            label: "Polygon Mainnet"
+          - value: "8453"
+            label: "Base Mainnet"
+          - value: "42161"
+            label: "Arbitrum One"
+          - value: "10"
+            label: "Optimism Mainnet"
+      
+      - name: rate_limit_delay
+        type: number
+        required: false
+        description: "Delay between requests in seconds (min 0.5 for PRO endpoints)"
+        default: 0.5
+        validation:
+          min: 0.5
+          max: 5.0
+          step: 0.1
+      
+      - name: timeout_seconds
+        type: integer
+        required: false
+        description: "Request timeout in seconds"
+        default: 30
+        validation:
+          min: 5
+          max: 120
+    
+    outputs:
+      - name: config
+        type: "etherscan_config"
+        description: "Configuration object to pass to Etherscan endpoint nodes"
+
+servers:
+  - url: https://api.etherscan.io/v2
+    description: Etherscan API v2
+
+# Security is handled by the configuration node
+security: []
+
+paths:
+  /api:
+    get:
+      summary: Get Address ERC20 Token Holding
+      description: Retrieves the current ERC-20 token balance for a specified address
+      operationId: getAddressTokenBalance
+      tags:
+        - Account
+        - ERC20
+      
+      # === CUSTOM EXTENSION: Node Configuration ===
+      x-node-config:
+        node_name: "Get ERC20 Token Holdings"
+        node_type: "action"
+        node_category: "Etherscan/Account"
+        requires_config: true
+        config_type: "etherscan_config"
+        icon: "token"
+        color: "#2c7be5"
+        description: "Retrieves all ERC-20 token balances for a specified Ethereum address"
+        inputs_order:
+          - config
+          - address
+          - chainid
+          - page
+          - offset
+        outputs_order:
+          - result
+          - status
+          - message
+      
+      parameters:
+        # === CONFIGURATION INPUT (Special Parameter) ===
+        - name: config
+          in: query
+          description: "Etherscan configuration node (contains API key and defaults)"
+          required: true
+          schema:
+            type: object
+            x-node-input: true
+            x-input-type: "etherscan_config"
+          x-ui-config:
+            input_type: "node_connection"
+            accepts: "etherscan_config"
+            label: "Etherscan Config"
+        
+        # === ENDPOINT-SPECIFIC PARAMETERS ===
+        - name: chainid
+          in: query
+          description: "Chain ID to query (overrides default from config node)"
+          required: false
+          schema:
+            type: string
+            example: "1"
+          x-ui-config:
+            uses_default_from: "config.default_chainid"
+            override_allowed: true
+        
+        - name: module
+          in: query
+          description: "Module name - automatically set to 'account'"
+          required: true
+          schema:
+            type: string
+            enum:
+              - account
+            default: account
+          x-ui-config:
+            hidden: true
+            auto_populate: true
+        
+        - name: action
+          in: query
+          description: "Action name - automatically set to 'addresstokenbalance'"
+          required: true
+          schema:
+            type: string
+            enum:
+              - addresstokenbalance
+            default: addresstokenbalance
+          x-ui-config:
+            hidden: true
+            auto_populate: true
+        
+        - name: address
+          in: query
+          description: "Ethereum address to check for token holdings"
+          required: true
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+            example: "0x983e3660c0bE01991785F80f266A84B911ab59b0"
+          x-ui-config:
+            input_type: "text"
+            placeholder: "0x..."
+            validation_message: "Must be a valid Ethereum address (0x + 40 hex characters)"
+        
+        - name: page
+          in: query
+          description: "Page number for pagination"
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          x-ui-config:
+            input_type: "number"
+            show_stepper: true
+        
+        - name: offset
+          in: query
+          description: "Number of records per page (max 10000)"
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+            default: 100
+          x-ui-config:
+            input_type: "number"
+            show_stepper: true
+            step: 10
+        
+        # API key comes from config node, not directly exposed
+        - name: apikey
+          in: query
+          description: "API key from configuration node"
+          required: true
+          schema:
+            type: string
+          x-ui-config:
+            hidden: true
+            source: "config.api_key"
+
+      responses:
+        '200':
+          description: Successful response with token holdings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    description: Status code (1 for success, 0 for error)
+                    example: "1"
+                    x-output-field:
+                      name: "status"
+                      type: "string"
+                      description: "Response status code"
+                  
+                  message:
+                    type: string
+                    description: Status message
+                    example: "OK"
+                    x-output-field:
+                      name: "message"
+                      type: "string"
+                      description: "Response message"
+                  
+                  result:
+                    type: array
+                    description: Array of token holdings
+                    x-output-field:
+                      name: "result"
+                      type: "array"
+                      description: "Array of ERC-20 token holdings"
+                      is_primary: true
+                    items:
+                      type: object
+                      properties:
+                        TokenAddress:
+                          type: string
+                          description: Contract address of the token
+                          example: "0xffffffff2ba8f66d4e51811c5190992176930278"
+                        TokenName:
+                          type: string
+                          description: Name of the token
+                          example: "Furucombo"
+                        TokenSymbol:
+                          type: string
+                          description: Symbol/ticker of the token
+                          example: "COMBO"
+                        TokenQuantity:
+                          type: string
+                          description: Raw token quantity (before applying divisor)
+                          example: "1861606940000000000"
+                        TokenDivisor:
+                          type: string
+                          description: Number of decimal places for the token
+                          example: "18"
+                        TokenPriceUSD:
+                          type: string
+                          description: Current USD price of the token
+                          example: "0.000891470000000000"
+              examples:
+                successful_response:
+                  value:
+                    status: "1"
+                    message: "OK"
+                    result:
+                      - TokenAddress: "0xffffffff2ba8f66d4e51811c5190992176930278"
+                        TokenName: "Furucombo"
+                        TokenSymbol: "COMBO"
+                        TokenQuantity: "1861606940000000000"
+                        TokenDivisor: "18"
+                        TokenPriceUSD: "0.000891470000000000"
+                      - TokenAddress: "0x53a1e9912323b8016424d6287286e3b6de263f76"
+                        TokenName: "PUTIN Token"
+                        TokenSymbol: "PTT"
+                        TokenQuantity: "3500000000000000000000"
+                        TokenDivisor: "18"
+                        TokenPriceUSD: "0.000000000000000000"
+        
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "0"
+                  message:
+                    type: string
+                    example: "NOTOK"
+                  result:
+                    type: string
+                    example: "Error! Invalid address format"
+        
+        '401':
+          description: Unauthorized - invalid API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "0"
+                  message:
+                    type: string
+                    example: "NOTOK"
+                  result:
+                    type: string
+                    example: "Invalid API Key"
+        
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "0"
+                  message:
+                    type: string
+                    example: "NOTOK"
+                  result:
+                    type: string
+                    example: "Max rate limit reached"
+
+components:
+  # Security is handled through the configuration node
+  securitySchemes: {}
+
+tags:
+  - name: Account
+    description: Account-related endpoints
+  - name: ERC20
+    description: ERC-20 token operations

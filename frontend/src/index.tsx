@@ -11,6 +11,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import App from './App';
 import theme from './theme';
+import { EasyModeProvider } from './context/EasyModeContext';
 
 // =============================================================================
 // RENDER APPLICATION
@@ -25,7 +26,9 @@ root.render(
         <ThemeProvider theme={theme}>
             {/* CssBaseline: Normalize CSS across browsers and apply dark theme */}
             <CssBaseline />
-            <App />
+            <EasyModeProvider>
+                <App />
+            </EasyModeProvider>
         </ThemeProvider>
     </React.StrictMode>
 );

@@ -24,6 +24,7 @@ import ReactFlow, {
     applyEdgeChanges,
     addEdge,
     NodeTypes,
+    EdgeTypes,
     useReactFlow,
     ReactFlowProvider,
 } from 'reactflow';
@@ -42,6 +43,21 @@ import type { GeneratedNodeDefinition } from '../../types/provider';
 
 // Import your custom BaseNode component
 import BaseNode from '../nodes/BaseNode';
+
+// Easy Mode imports
+import { useEasyMode } from '../../context/EasyModeContext';
+import NodeHelpDialog from './NodeHelpDialog';
+
+// Custom Edge with clips
+import ClippedEdge from './ClippedEdge';
+
+// =============================================================================
+// CUSTOM EDGE TYPES REGISTRATION
+// =============================================================================
+
+const customEdgeTypes: EdgeTypes = {
+    clipped: ClippedEdge,
+};
 
 // =============================================================================
 // STATIC NODE TYPES REGISTRATION
@@ -142,6 +158,11 @@ function areTypesCompatible(sourceType: DataType, targetType: DataType): boolean
 
 const WorkflowCanvasInner: React.FC = () => {
     // ---------------------------------------------------------------------------
+    // EASY MODE CONTEXT
+    // ---------------------------------------------------------------------------
+    const { isEasyMode, toggleMode, setEasyMode } = useEasyMode();
+
+    // ---------------------------------------------------------------------------
     // FETCH DATABASE NODES - Dynamic node types from OpenAPI specs
     // ---------------------------------------------------------------------------
     const { nodes: generatedNodes, loading: loadingGeneratedNodes } = useGeneratedNodes();
@@ -185,6 +206,10 @@ const WorkflowCanvasInner: React.FC = () => {
     // Workflow name editing state
     const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState('');
+
+    // Easy Mode help dialog state
+    const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+    const [helpDialogNode, setHelpDialogNode] = useState<NodeTypeDefinition | null>(null);
 
     // ---------------------------------------------------------------------------
     // COMPUTED PROPERTIES
@@ -343,8 +368,14 @@ const WorkflowCanvasInner: React.FC = () => {
             setNodes((nds: Node[]) => [...nds, newNode]);
 
             console.log('[ADD NODE] Created:', nodeDefinition.name, 'at', snappedPosition);
+
+            // Show help dialog in Easy Mode
+            if (isEasyMode && nodeDefinition) {
+                setHelpDialogNode(nodeDefinition as NodeTypeDefinition);
+                setHelpDialogOpen(true);
+            }
         },
-        [generatedNodes]
+        [generatedNodes, isEasyMode]
     );
 
     // ---------------------------------------------------------------------------
@@ -639,8 +670,9 @@ const WorkflowCanvasInner: React.FC = () => {
                 target: 'query_1',
                 sourceHandle: 'credentials',
                 targetHandle: 'credentials',
-                type: 'smoothstep',
+                type: 'clipped',
                 animated: true,
+                data: { clips: [] },
             },
             {
                 id: 'e-input-query',
@@ -648,8 +680,9 @@ const WorkflowCanvasInner: React.FC = () => {
                 target: 'query_1',
                 sourceHandle: 'address',
                 targetHandle: 'address',
-                type: 'smoothstep',
+                type: 'clipped',
                 animated: true,
+                data: { clips: [] },
             },
             {
                 id: 'e-query-output',
@@ -657,8 +690,9 @@ const WorkflowCanvasInner: React.FC = () => {
                 target: 'output_1',
                 sourceHandle: 'cluster_name',
                 targetHandle: 'data',
-                type: 'smoothstep',
+                type: 'clipped',
                 animated: true,
+                data: { clips: [] },
             },
         ]);
 
@@ -733,9 +767,10 @@ const WorkflowCanvasInner: React.FC = () => {
         if (isValidConnection(connection)) {
             setEdges((eds: Edge[]) => addEdge({
                 ...connection,
-                type: 'smoothstep',
+                type: 'clipped',
                 animated: true,
                 style: { stroke: '#00c853', strokeWidth: 2 },
+                data: { clips: [] },
             }, eds));
             console.log('[CONNECT] Valid connection:', connection.source, '->', connection.target);
         } else {
@@ -1119,6 +1154,65 @@ const WorkflowCanvasInner: React.FC = () => {
                 >
                     🎨
                 </button>
+
+                {/* Divider before mode toggle */}
+                <div style={{ width: '1px', height: '32px', backgroundColor: 'rgba(255, 255, 255, 0.08)' }} />
+
+                {/* Easy/Advanced Mode Toggle */}
+                <div
+                    onClick={toggleMode}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '6px 12px',
+                        backgroundColor: isEasyMode ? 'rgba(102, 126, 234, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                        border: `1px solid ${isEasyMode ? 'rgba(102, 126, 234, 0.4)' : 'rgba(255, 255, 255, 0.08)'}`,
+                        borderRadius: '20px',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        userSelect: 'none',
+                    }}
+                    title={isEasyMode ? 'Easy Mode: Helpful popups appear when you add nodes. Click to switch to Advanced Mode.' : 'Advanced Mode: No popups. Click to switch to Easy Mode.'}
+                >
+                    {/* Toggle Track */}
+                    <div
+                        style={{
+                            width: '36px',
+                            height: '20px',
+                            backgroundColor: isEasyMode ? '#667eea' : 'rgba(255, 255, 255, 0.1)',
+                            borderRadius: '10px',
+                            position: 'relative',
+                            transition: 'all 0.3s ease',
+                        }}
+                    >
+                        {/* Toggle Knob */}
+                        <div
+                            style={{
+                                width: '16px',
+                                height: '16px',
+                                backgroundColor: '#ffffff',
+                                borderRadius: '50%',
+                                position: 'absolute',
+                                top: '2px',
+                                left: isEasyMode ? '18px' : '2px',
+                                transition: 'all 0.3s ease',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            }}
+                        />
+                    </div>
+                    {/* Mode Label */}
+                    <span
+                        style={{
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            color: isEasyMode ? '#667eea' : '#a0aec0',
+                            minWidth: '65px',
+                        }}
+                    >
+                        {isEasyMode ? '✨ Easy' : '⚡ Advanced'}
+                    </span>
+                </div>
             </div>
 
             {/* Canvas Area - offset for toolbar */}
@@ -1132,6 +1226,7 @@ const WorkflowCanvasInner: React.FC = () => {
                     onDrop={onDrop}
                     onDragOver={onDragOver}
                     nodeTypes={customNodeTypes}
+                    edgeTypes={customEdgeTypes}
                     isValidConnection={isValidConnection}
                     fitView
                     snapToGrid
@@ -1139,9 +1234,10 @@ const WorkflowCanvasInner: React.FC = () => {
                     attributionPosition="bottom-left"
                     style={{ backgroundColor: '#0a0e27' }}
                     defaultEdgeOptions={{
-                        type: 'smoothstep',
+                        type: 'clipped',
                         animated: true,
                         style: { stroke: '#667eea', strokeWidth: 2 },
+                        data: { clips: [] },
                     }}
                 >
                     {/* Grid background - faded visible grid */}
@@ -1334,6 +1430,17 @@ const WorkflowCanvasInner: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Easy Mode Help Dialog */}
+            <NodeHelpDialog
+                open={helpDialogOpen}
+                onClose={() => setHelpDialogOpen(false)}
+                node={helpDialogNode}
+                onDontShowAgain={() => {
+                    setHelpDialogOpen(false);
+                    setEasyMode(false);
+                }}
+            />
 
         </div>
     );

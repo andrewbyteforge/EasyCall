@@ -138,13 +138,16 @@ function getDynamicCategories(
         new Set(generatedNodes.map((node) => node.provider))
     );
 
+    // Color palette for dynamic providers (cycling through landing page colors)
+    const dynamicColors = ['#667eea', '#764ba2', '#4facfe', '#f093fb'];
+
     // Create category for each provider
-    return providers.map((provider) => ({
+    return providers.map((provider, index) => ({
         key: `dynamic_${provider}`,
         icon: '🔌', // Plugin icon for dynamic providers
         label: `${provider.charAt(0).toUpperCase() + provider.slice(1)} (Database)`,
         defaultExpanded: true,
-        color: '#00897b', // Teal for all dynamic query nodes
+        color: dynamicColors[index % dynamicColors.length],
         filter: (node: NodeTypeDefinition) =>
             node.provider === provider && node.type.startsWith(`${provider}_`),
     }));
@@ -160,7 +163,7 @@ const STATIC_CATEGORIES: CategoryConfig[] = [
         icon: '🔑',
         label: 'Configuration',
         defaultExpanded: false,
-        color: '#4a148c',
+        color: '#f093fb',  // Pink accent
         filter: (node) => node.category === NodeCategory.CONFIGURATION,
     },
     {
@@ -168,7 +171,7 @@ const STATIC_CATEGORIES: CategoryConfig[] = [
         icon: '📍',
         label: 'Input',
         defaultExpanded: true,
-        color: '#1976d2',
+        color: '#4facfe',  // Blue accent
         filter: (node) => node.category === NodeCategory.INPUT,
     },
     {
@@ -176,7 +179,7 @@ const STATIC_CATEGORIES: CategoryConfig[] = [
         icon: '🔗',
         label: 'Chainalysis',
         defaultExpanded: true,
-        color: '#00897b',
+        color: '#667eea',  // Purple accent
         filter: (node) => node.provider === 'chainalysis' && !node.type.startsWith('chainalysis_dynamic'),
     },
     {
@@ -184,18 +187,20 @@ const STATIC_CATEGORIES: CategoryConfig[] = [
         icon: '🛡️',
         label: 'TRM Labs',
         defaultExpanded: true,
-        color: '#00897b',
+        color: '#764ba2',  // Deep purple
         filter: (node) => node.provider === 'trm' && !node.type.startsWith('trm_dynamic'),
     },
-    {
-        key: 'output',
-        icon: '📤',
-        label: 'Output',
-        defaultExpanded: false,
-        color: '#f57c00',
-        filter: (node) => node.category === NodeCategory.OUTPUT,
-    },
 ];
+
+// Output category defined separately so it can be added after dynamic categories
+const OUTPUT_CATEGORY: CategoryConfig = {
+    key: 'output',
+    icon: '📤',
+    label: 'Output',
+    defaultExpanded: false,
+    color: '#00f2fe',  // Cyan accent
+    filter: (node) => node.category === NodeCategory.OUTPUT,
+};
 
 // =============================================================================
 // SUB-COMPONENTS
@@ -212,22 +217,22 @@ const NodePaletteItem: React.FC<{
     // Build tooltip content
     const tooltipContent = (
         <Box sx={{ p: 0.5 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5, color: '#ffffff' }}>
                 {node.name}
             </Typography>
-            <Typography variant="body2" sx={{ mb: 1, fontSize: '0.8rem' }}>
+            <Typography variant="body2" sx={{ mb: 1, fontSize: '0.8rem', color: '#a0aec0' }}>
                 {node.longDescription || node.description}
             </Typography>
 
             {/* Input Pins */}
-            <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mt: 1 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mt: 1, color: '#4facfe' }}>
                 Inputs:
             </Typography>
             {node.inputs.length > 0 ? (
                 <Box component="ul" sx={{ mt: 0.5, pl: 2, mb: 0 }}>
                     {node.inputs.map((input) => (
                         <li key={input.id}>
-                            <Typography variant="caption">
+                            <Typography variant="caption" sx={{ color: '#a0aec0' }}>
                                 {input.label} ({input.type})
                                 {input.required && ' *'}
                             </Typography>
@@ -235,27 +240,27 @@ const NodePaletteItem: React.FC<{
                     ))}
                 </Box>
             ) : (
-                <Typography variant="caption" sx={{ color: '#888', ml: 1 }}>
+                <Typography variant="caption" sx={{ color: '#6b7280', ml: 1 }}>
                     None
                 </Typography>
             )}
 
             {/* Output Pins */}
-            <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mt: 1 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mt: 1, color: '#00f2fe' }}>
                 Outputs:
             </Typography>
             {node.outputs.length > 0 ? (
                 <Box component="ul" sx={{ mt: 0.5, pl: 2, mb: 0 }}>
                     {node.outputs.map((output) => (
                         <li key={output.id}>
-                            <Typography variant="caption">
+                            <Typography variant="caption" sx={{ color: '#a0aec0' }}>
                                 {output.label} ({output.type})
                             </Typography>
                         </li>
                     ))}
                 </Box>
             ) : (
-                <Typography variant="caption" sx={{ color: '#888', ml: 1 }}>
+                <Typography variant="caption" sx={{ color: '#6b7280', ml: 1 }}>
                     None
                 </Typography>
             )}
@@ -264,7 +269,7 @@ const NodePaletteItem: React.FC<{
             {node.provider && (
                 <Typography
                     variant="caption"
-                    sx={{ display: 'block', mt: 1, fontStyle: 'italic', color: '#aaa' }}
+                    sx={{ display: 'block', mt: 1, fontStyle: 'italic', color: '#667eea' }}
                 >
                     Provider: {node.provider === 'chainalysis' ? 'Chainalysis' : node.provider === 'trm' ? 'TRM Labs' : node.provider}
                 </Typography>
@@ -293,12 +298,14 @@ const NodePaletteItem: React.FC<{
             componentsProps={{
                 tooltip: {
                     sx: {
-                        bgcolor: '#2d2d30',
-                        color: '#cccccc',
-                        border: '1px solid #3e3e42',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        bgcolor: 'rgba(5, 10, 30, 0.95)',
+                        color: '#a0aec0',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        backdropFilter: 'blur(20px)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                         maxWidth: 350,
                         fontSize: '0.8rem',
+                        borderRadius: '12px',
                     },
                 },
             }}
@@ -312,16 +319,16 @@ const NodePaletteItem: React.FC<{
                     gap: 1,
                     padding: '8px 12px',
                     marginBottom: '6px',
-                    backgroundColor: '#2d2d30',
-                    border: '1px solid #3e3e42',
-                    borderRadius: '6px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '10px',
                     cursor: 'grab',
-                    transition: 'all 0.2s ease',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     '&:hover': {
-                        backgroundColor: '#37373d',
-                        borderColor: categoryColor,
+                        backgroundColor: `${categoryColor}15`,
+                        borderColor: `${categoryColor}60`,
                         transform: 'translateX(4px)',
-                        boxShadow: `0 2px 8px ${categoryColor}40`,
+                        boxShadow: `0 4px 16px ${categoryColor}30`,
                     },
                     '&:active': {
                         cursor: 'grabbing',
@@ -338,7 +345,7 @@ const NodePaletteItem: React.FC<{
                         flex: 1,
                         fontSize: '0.8rem',
                         fontWeight: 500,
-                        color: '#cccccc',
+                        color: '#ffffff',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -357,7 +364,7 @@ const NodePaletteItem: React.FC<{
                             fontSize: '0.65rem',
                             fontWeight: 600,
                             backgroundColor:
-                                node.provider === 'chainalysis' ? '#4a148c' : '#00897b',
+                                node.provider === 'chainalysis' ? '#667eea' : '#764ba2',
                             color: '#ffffff',
                         }}
                     />
@@ -382,8 +389,8 @@ const CategorySection: React.FC<{
             defaultExpanded={category.defaultExpanded}
             disableGutters
             sx={{
-                backgroundColor: '#252526',
-                color: '#cccccc',
+                backgroundColor: 'transparent',
+                color: '#ffffff',
                 boxShadow: 'none',
                 border: 'none',
                 '&:before': { display: 'none' },
@@ -391,14 +398,17 @@ const CategorySection: React.FC<{
             }}
         >
             <AccordionSummary
-                expandIcon={<ExpandMoreIcon sx={{ color: '#cccccc' }} />}
+                expandIcon={<ExpandMoreIcon sx={{ color: '#a0aec0' }} />}
                 sx={{
                     minHeight: 'auto',
                     padding: '12px 8px',
-                    backgroundColor: '#2d2d30',
-                    borderRadius: '4px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    transition: 'all 0.3s ease',
                     '&:hover': {
-                        backgroundColor: '#37373d',
+                        backgroundColor: `${category.color}15`,
+                        borderColor: `${category.color}40`,
                     },
                 }}
             >
@@ -406,7 +416,7 @@ const CategorySection: React.FC<{
                     <Box sx={{ fontSize: '1.1rem' }}>{category.icon}</Box>
                     <Typography
                         variant="body2"
-                        sx={{ flex: 1, fontSize: '0.85rem', fontWeight: 600 }}
+                        sx={{ flex: 1, fontSize: '0.85rem', fontWeight: 600, color: '#ffffff' }}
                     >
                         {category.label}
                     </Typography>
@@ -503,8 +513,8 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
         // Get dynamic categories from generated nodes
         const dynamicCategories = getDynamicCategories(generatedNodes);
 
-        // Merge static categories with dynamic ones
-        return [...STATIC_CATEGORIES, ...dynamicCategories];
+        // Merge static categories with dynamic ones, then add Output at the end
+        return [...STATIC_CATEGORIES, ...dynamicCategories, OUTPUT_CATEGORY];
     }, [generatedNodes]);
 
     // ---------------------------------------------------------------------------
@@ -542,8 +552,8 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
             sx={{
                 width: 280,
                 height: '100%',
-                backgroundColor: '#1e1e1e',
-                borderRight: '1px solid #3e3e42',
+                backgroundColor: '#050a1e',
+                borderRight: '1px solid rgba(255, 255, 255, 0.08)',
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
@@ -553,7 +563,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
             <Box
                 sx={{
                     padding: 2,
-                    borderBottom: '1px solid #3e3e42',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                 }}
             >
                 {/* Title Row with Home Button and Refresh */}
@@ -564,13 +574,13 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                             onClick={handleHomeClick}
                             size="small"
                             sx={{
-                                color: '#cccccc',
-                                backgroundColor: '#2d2d30',
-                                border: '1px solid #3e3e42',
+                                color: '#a0aec0',
+                                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
                                 '&:hover': {
-                                    backgroundColor: '#37373d',
-                                    borderColor: '#0e639c',
-                                    color: '#0e639c',
+                                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                    borderColor: 'rgba(102, 126, 234, 0.4)',
+                                    color: '#667eea',
                                 },
                                 width: 32,
                                 height: 32,
@@ -586,7 +596,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                         sx={{
                             fontSize: '0.95rem',
                             fontWeight: 600,
-                            color: '#cccccc',
+                            color: '#ffffff',
                             flex: 1,
                         }}
                     >
@@ -600,13 +610,13 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                             disabled={loadingNodes}
                             size="small"
                             sx={{
-                                color: '#cccccc',
-                                backgroundColor: '#2d2d30',
-                                border: '1px solid #3e3e42',
+                                color: '#a0aec0',
+                                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
                                 '&:hover': {
-                                    backgroundColor: '#37373d',
-                                    borderColor: '#00897b',
-                                    color: '#00897b',
+                                    backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                                    borderColor: 'rgba(79, 172, 254, 0.4)',
+                                    color: '#4facfe',
                                 },
                                 '&:disabled': {
                                     opacity: 0.5,
@@ -616,7 +626,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                             }}
                         >
                             {loadingNodes ? (
-                                <CircularProgress size={16} sx={{ color: '#00897b' }} />
+                                <CircularProgress size={16} sx={{ color: '#667eea' }} />
                             ) : (
                                 <RefreshIcon sx={{ fontSize: '1.1rem' }} />
                             )}
@@ -630,7 +640,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                         sx={{
                             height: 22,
                             fontSize: '0.75rem',
-                            backgroundColor: '#0e639c',
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                             color: '#ffffff',
                         }}
                     />
@@ -645,13 +655,13 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                             gap: 1,
                             mb: 1,
                             padding: '6px 8px',
-                            backgroundColor: '#2d2d30',
-                            borderRadius: '4px',
-                            border: '1px solid #00897b40',
+                            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(102, 126, 234, 0.2)',
                         }}
                     >
-                        <CircularProgress size={14} sx={{ color: '#00897b' }} />
-                        <Typography sx={{ fontSize: '0.75rem', color: '#00897b' }}>
+                        <CircularProgress size={14} sx={{ color: '#667eea' }} />
+                        <Typography sx={{ fontSize: '0.75rem', color: '#667eea' }}>
                             Loading database nodes...
                         </Typography>
                     </Box>
@@ -664,10 +674,13 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                             mb: 1,
                             fontSize: '0.75rem',
                             padding: '4px 8px',
-                            backgroundColor: '#3e3e42',
-                            color: '#f0ad4e',
+                            backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                            color: '#f093fb',
+                            border: '1px solid rgba(240, 147, 251, 0.3)',
+                            borderRadius: '8px',
                             '& .MuiAlert-icon': {
                                 fontSize: '1rem',
+                                color: '#f093fb',
                             },
                         }}
                     >
@@ -681,11 +694,12 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                         sx={{
                             mb: 1,
                             fontSize: '0.75rem',
-                            color: '#00897b',
+                            color: '#4facfe',
                             textAlign: 'center',
                             padding: '4px',
-                            backgroundColor: '#00897b20',
-                            borderRadius: '4px',
+                            backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(79, 172, 254, 0.2)',
                         }}
                     >
                         🔌 {generatedNodes.length} node{generatedNodes.length !== 1 ? 's' : ''} from database
@@ -702,27 +716,28 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                     InputProps={{
                         startAdornment: (
                             <InputAdornment position="start">
-                                <SearchIcon sx={{ color: '#858585', fontSize: '1.1rem' }} />
+                                <SearchIcon sx={{ color: '#a0aec0', fontSize: '1.1rem' }} />
                             </InputAdornment>
                         ),
                     }}
                     sx={{
                         '& .MuiOutlinedInput-root': {
-                            backgroundColor: '#2d2d30',
-                            color: '#cccccc',
+                            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                            color: '#ffffff',
                             fontSize: '0.8rem',
+                            borderRadius: '10px',
                             '& fieldset': {
-                                borderColor: '#3e3e42',
+                                borderColor: 'rgba(255, 255, 255, 0.08)',
                             },
                             '&:hover fieldset': {
-                                borderColor: '#0e639c',
+                                borderColor: 'rgba(102, 126, 234, 0.4)',
                             },
                             '&.Mui-focused fieldset': {
-                                borderColor: '#0e639c',
+                                borderColor: '#667eea',
                             },
                         },
                         '& input::placeholder': {
-                            color: '#858585',
+                            color: '#a0aec0',
                             opacity: 1,
                         },
                     }}
@@ -739,13 +754,13 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                         width: '8px',
                     },
                     '&::-webkit-scrollbar-track': {
-                        backgroundColor: '#1e1e1e',
+                        backgroundColor: '#050a1e',
                     },
                     '&::-webkit-scrollbar-thumb': {
-                        backgroundColor: '#3e3e42',
+                        backgroundColor: 'rgba(102, 126, 234, 0.3)',
                         borderRadius: '4px',
                         '&:hover': {
-                            backgroundColor: '#4e4e52',
+                            backgroundColor: 'rgba(102, 126, 234, 0.5)',
                         },
                     },
                 }}
@@ -765,7 +780,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                         sx={{
                             padding: 3,
                             textAlign: 'center',
-                            color: '#858585',
+                            color: '#a0aec0',
                         }}
                     >
                         <SearchIcon sx={{ fontSize: '2.5rem', mb: 1, opacity: 0.5 }} />
@@ -780,8 +795,8 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
             <Box
                 sx={{
                     padding: 1.5,
-                    borderTop: '1px solid #3e3e42',
-                    backgroundColor: '#252526',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                    backgroundColor: 'rgba(10, 14, 39, 0.8)',
                 }}
             >
                 <Typography
@@ -789,7 +804,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
                     sx={{
                         display: 'block',
                         textAlign: 'center',
-                        color: '#858585',
+                        color: '#a0aec0',
                         fontSize: '0.7rem',
                     }}
                 >

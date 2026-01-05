@@ -864,7 +864,7 @@ const WorkflowCanvasInner: React.FC = () => {
     // ---------------------------------------------------------------------------
 
     return (
-        <div style={{ width: '100%', height: '100%', backgroundColor: '#1a1a1a' }}>
+        <div style={{ width: '100%', height: '100%', backgroundColor: '#0a0e27' }}>
             {/* Top Toolbar */}
             <div style={{
                 position: 'absolute',
@@ -872,8 +872,9 @@ const WorkflowCanvasInner: React.FC = () => {
                 left: '0',
                 right: '0',
                 height: '56px',
-                backgroundColor: '#252526',
-                borderBottom: '1px solid #3e3e42',
+                backgroundColor: 'rgba(10, 14, 39, 0.9)',
+                backdropFilter: 'blur(20px)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                 zIndex: 10,
                 display: 'flex',
                 alignItems: 'center',
@@ -887,17 +888,28 @@ const WorkflowCanvasInner: React.FC = () => {
                         onClick={createNewWorkflow}
                         style={{
                             padding: '8px 12px',
-                            backgroundColor: '#3c3c3c',
-                            color: '#ccc',
-                            border: '1px solid #555',
-                            borderRadius: '4px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                            color: '#a0aec0',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '8px',
                             cursor: 'pointer',
                             fontSize: '12px',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '6px',
+                            transition: 'all 0.3s ease',
                         }}
                         title="New Workflow"
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
+                            e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.4)';
+                            e.currentTarget.style.color = '#ffffff';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                            e.currentTarget.style.color = '#a0aec0';
+                        }}
                     >
                         📄 New
                     </button>
@@ -908,17 +920,28 @@ const WorkflowCanvasInner: React.FC = () => {
                         disabled={isLoading}
                         style={{
                             padding: '8px 12px',
-                            backgroundColor: '#3c3c3c',
-                            color: '#ccc',
-                            border: '1px solid #555',
-                            borderRadius: '4px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                            color: '#a0aec0',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '8px',
                             cursor: isLoading ? 'wait' : 'pointer',
                             fontSize: '12px',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '6px',
+                            transition: 'all 0.3s ease',
                         }}
                         title="Open Workflow from file"
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
+                            e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.4)';
+                            e.currentTarget.style.color = '#ffffff';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                            e.currentTarget.style.color = '#a0aec0';
+                        }}
                     >
                         {isLoading ? '⏳' : '📂'} Open
                     </button>
@@ -929,15 +952,16 @@ const WorkflowCanvasInner: React.FC = () => {
                         disabled={isSaving || nodes.length === 0}
                         style={{
                             padding: '8px 12px',
-                            backgroundColor: hasUnsavedChanges && nodes.length > 0 ? '#00897b' : '#3c3c3c',
-                            color: hasUnsavedChanges && nodes.length > 0 ? 'white' : '#888',
-                            border: hasUnsavedChanges && nodes.length > 0 ? '1px solid #00a98b' : '1px solid #555',
-                            borderRadius: '4px',
+                            backgroundColor: hasUnsavedChanges && nodes.length > 0 ? 'rgba(102, 126, 234, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                            color: hasUnsavedChanges && nodes.length > 0 ? '#ffffff' : '#6b7280',
+                            border: hasUnsavedChanges && nodes.length > 0 ? '1px solid rgba(102, 126, 234, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '8px',
                             cursor: isSaving || nodes.length === 0 ? 'not-allowed' : 'pointer',
                             fontSize: '12px',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '6px',
+                            transition: 'all 0.3s ease',
                         }}
                         title={nodes.length === 0 ? 'Add nodes to save' : 'Save Workflow to file'}
                     >
@@ -946,7 +970,7 @@ const WorkflowCanvasInner: React.FC = () => {
                 </div>
 
                 {/* Divider */}
-                <div style={{ width: '1px', height: '32px', backgroundColor: '#555' }} />
+                <div style={{ width: '1px', height: '32px', backgroundColor: 'rgba(255, 255, 255, 0.08)' }} />
 
                 {/* Workflow Name */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
@@ -963,10 +987,10 @@ const WorkflowCanvasInner: React.FC = () => {
                             autoFocus
                             style={{
                                 padding: '6px 12px',
-                                backgroundColor: '#1e1e1e',
+                                backgroundColor: 'rgba(255, 255, 255, 0.03)',
                                 color: 'white',
-                                border: '1px solid #00897b',
-                                borderRadius: '4px',
+                                border: '1px solid #667eea',
+                                borderRadius: '8px',
                                 fontSize: '14px',
                                 fontWeight: 'bold',
                                 outline: 'none',
@@ -985,27 +1009,27 @@ const WorkflowCanvasInner: React.FC = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px',
-                                borderRadius: '4px',
+                                borderRadius: '8px',
                             }}
                             title="Click to rename"
                         >
                             {workflowName}
                             {hasUnsavedChanges && (
-                                <span style={{ color: '#ff9800', fontSize: '10px' }}>●</span>
+                                <span style={{ color: '#f093fb', fontSize: '10px' }}>●</span>
                             )}
-                            <span style={{ color: '#666', fontSize: '11px' }}>✏️</span>
+                            <span style={{ color: '#667eea', fontSize: '11px' }}>✏️</span>
                         </div>
                     )}
                 </div>
 
                 {/* Divider */}
-                <div style={{ width: '1px', height: '32px', backgroundColor: '#555' }} />
+                <div style={{ width: '1px', height: '32px', backgroundColor: 'rgba(255, 255, 255, 0.08)' }} />
 
                 {/* Database Nodes Status Indicator */}
                 {loadingGeneratedNodes && (
                     <div style={{
                         fontSize: '11px',
-                        color: '#888',
+                        color: '#a0aec0',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
@@ -1017,14 +1041,14 @@ const WorkflowCanvasInner: React.FC = () => {
                 {!loadingGeneratedNodes && generatedNodes.length > 0 && (
                     <div style={{
                         fontSize: '11px',
-                        color: '#00897b',
+                        color: '#4facfe',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
                         padding: '4px 8px',
-                        backgroundColor: '#00897b22',
-                        borderRadius: '4px',
-                        border: '1px solid #00897b',
+                        backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(79, 172, 254, 0.3)',
                     }}>
                         <span>✓ {generatedNodes.length} database node{generatedNodes.length !== 1 ? 's' : ''}</span>
                     </div>
@@ -1033,10 +1057,10 @@ const WorkflowCanvasInner: React.FC = () => {
                 {/* Status Indicator */}
                 <div style={{
                     padding: '6px 12px',
-                    backgroundColor: '#1e1e1e',
-                    borderRadius: '4px',
-                    border: `1px solid ${canExecute ? '#00c853' : '#ff9800'}`,
-                    color: canExecute ? '#00c853' : '#ff9800',
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '8px',
+                    border: `1px solid ${canExecute ? 'rgba(79, 172, 254, 0.4)' : 'rgba(240, 147, 251, 0.4)'}`,
+                    color: canExecute ? '#4facfe' : '#f093fb',
                     fontSize: '11px',
                     fontWeight: 500,
                 }}>
@@ -1051,18 +1075,20 @@ const WorkflowCanvasInner: React.FC = () => {
                     disabled={!canExecute || isExecuting}
                     style={{
                         padding: '10px 20px',
-                        backgroundColor: canExecute ? (isExecuting ? '#f57c00' : '#00c853') : '#555',
-                        color: 'white',
+                        background: canExecute
+                            ? (isExecuting ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)')
+                            : 'rgba(255, 255, 255, 0.05)',
+                        color: canExecute ? 'white' : '#6b7280',
                         border: 'none',
-                        borderRadius: '6px',
+                        borderRadius: '10px',
                         cursor: canExecute && !isExecuting ? 'pointer' : 'not-allowed',
                         fontSize: '13px',
                         fontWeight: 'bold',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        boxShadow: canExecute ? '0 2px 8px rgba(0, 200, 83, 0.3)' : 'none',
-                        transition: 'all 0.2s ease',
+                        boxShadow: canExecute ? '0 4px 20px rgba(102, 126, 234, 0.4)' : 'none',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     }}
                 >
                     {isExecuting ? '⏳' : '▶'} {isExecuting ? 'Running...' : 'Run'}
@@ -1073,14 +1099,23 @@ const WorkflowCanvasInner: React.FC = () => {
                     onClick={createExampleNodes}
                     style={{
                         padding: '8px 12px',
-                        backgroundColor: '#3c3c3c',
-                        color: '#888',
-                        border: '1px solid #555',
-                        borderRadius: '4px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                        color: '#a0aec0',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '8px',
                         cursor: 'pointer',
                         fontSize: '11px',
+                        transition: 'all 0.3s ease',
                     }}
                     title="Load example workflow"
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
+                        e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.4)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                    }}
                 >
                     🎨
                 </button>
@@ -1102,26 +1137,35 @@ const WorkflowCanvasInner: React.FC = () => {
                     snapToGrid
                     snapGrid={[15, 15]}
                     attributionPosition="bottom-left"
-                    style={{ backgroundColor: '#1a1a1a' }}
+                    style={{ backgroundColor: '#0a0e27' }}
                     defaultEdgeOptions={{
                         type: 'smoothstep',
                         animated: true,
-                        style: { stroke: '#00897b', strokeWidth: 2 },
+                        style: { stroke: '#667eea', strokeWidth: 2 },
                     }}
                 >
-                    {/* Grid background (Unreal Engine style) */}
+                    {/* Grid background - faded visible grid */}
                     <Background
-                        variant={BackgroundVariant.Dots}
-                        gap={20}
+                        variant={BackgroundVariant.Lines}
+                        gap={40}
                         size={1}
-                        color="#404040"
+                        color="rgba(102, 126, 234, 0.08)"
+                    />
+                    {/* Secondary smaller grid overlay */}
+                    <Background
+                        id="small-grid"
+                        variant={BackgroundVariant.Lines}
+                        gap={10}
+                        size={0.5}
+                        color="rgba(102, 126, 234, 0.04)"
                     />
 
                     {/* Zoom/Pan controls */}
                     <Controls
                         style={{
-                            backgroundColor: '#2a2a2a',
-                            border: '1px solid #404040',
+                            backgroundColor: 'rgba(5, 10, 30, 0.9)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '12px',
                         }}
                     />
 
@@ -1134,13 +1178,14 @@ const WorkflowCanvasInner: React.FC = () => {
                                 const category = (nodeDef.category || NodeCategory.QUERY) as NodeCategory;
                                 return getCategoryColor(category);
                             }
-                            return '#666666';
+                            return '#667eea';
                         }}
                         style={{
-                            backgroundColor: '#1a1a1a',
-                            border: '1px solid #404040',
+                            backgroundColor: 'rgba(5, 10, 30, 0.9)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '12px',
                         }}
-                        maskColor="rgba(26, 26, 26, 0.6)"
+                        maskColor="rgba(10, 14, 39, 0.7)"
                     />
                 </ReactFlow>
             </div>
@@ -1154,17 +1199,18 @@ const WorkflowCanvasInner: React.FC = () => {
                     right: '20px',
                     zIndex: 20,
                     padding: '8px 16px',
-                    backgroundColor: executionLog.length > 0 ? '#00897b' : '#444',
+                    background: executionLog.length > 0 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255, 255, 255, 0.05)',
                     color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '10px',
                     cursor: 'pointer',
                     fontSize: '12px',
                     fontWeight: 'bold',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    transition: 'all 0.3s ease',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: executionLog.length > 0 ? '0 4px 20px rgba(102, 126, 234, 0.4)' : 'none',
                 }}
             >
                 {showOutputPanel ? '▼' : '▲'} Output {executionLog.length > 0 && `(${executionLog.length})`}
@@ -1179,8 +1225,9 @@ const WorkflowCanvasInner: React.FC = () => {
                         left: 0,
                         right: 0,
                         height: '250px',
-                        backgroundColor: '#1e1e1e',
-                        borderTop: '2px solid #00897b',
+                        backgroundColor: 'rgba(5, 10, 30, 0.95)',
+                        backdropFilter: 'blur(20px)',
+                        borderTop: '1px solid rgba(102, 126, 234, 0.3)',
                         display: 'flex',
                         flexDirection: 'column',
                         zIndex: 15,
@@ -1190,20 +1237,20 @@ const WorkflowCanvasInner: React.FC = () => {
                     <div
                         style={{
                             padding: '8px 16px',
-                            backgroundColor: '#252526',
-                            borderBottom: '1px solid #3e3e42',
+                            backgroundColor: 'rgba(10, 14, 39, 0.9)',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                         }}
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span style={{ color: '#00897b', fontWeight: 'bold', fontSize: '13px' }}>
+                            <span style={{ color: '#667eea', fontWeight: 'bold', fontSize: '13px' }}>
                                 📋 Execution Output
                             </span>
                             {isExecuting && (
                                 <span style={{
-                                    color: '#f57c00',
+                                    color: '#f093fb',
                                     fontSize: '12px',
                                     animation: 'pulse 1s infinite',
                                 }}>
@@ -1211,7 +1258,7 @@ const WorkflowCanvasInner: React.FC = () => {
                                 </span>
                             )}
                             {!isExecuting && executionLog.length > 0 && (
-                                <span style={{ color: '#00c853', fontSize: '12px' }}>
+                                <span style={{ color: '#4facfe', fontSize: '12px' }}>
                                     ✅ Complete
                                 </span>
                             )}
@@ -1221,12 +1268,13 @@ const WorkflowCanvasInner: React.FC = () => {
                                 onClick={() => setExecutionLog([])}
                                 style={{
                                     padding: '4px 12px',
-                                    backgroundColor: '#333',
-                                    color: '#888',
-                                    border: '1px solid #444',
-                                    borderRadius: '3px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                                    color: '#a0aec0',
+                                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                                    borderRadius: '6px',
                                     cursor: 'pointer',
                                     fontSize: '11px',
+                                    transition: 'all 0.2s ease',
                                 }}
                             >
                                 Clear
@@ -1236,7 +1284,7 @@ const WorkflowCanvasInner: React.FC = () => {
                                 style={{
                                     padding: '4px 8px',
                                     backgroundColor: 'transparent',
-                                    color: '#888',
+                                    color: '#a0aec0',
                                     border: 'none',
                                     cursor: 'pointer',
                                     fontSize: '16px',
@@ -1256,11 +1304,11 @@ const WorkflowCanvasInner: React.FC = () => {
                             fontFamily: 'Consolas, Monaco, "Courier New", monospace',
                             fontSize: '12px',
                             lineHeight: '1.5',
-                            color: '#cccccc',
+                            color: '#a0aec0',
                         }}
                     >
                         {executionLog.length === 0 ? (
-                            <div style={{ color: '#666', textAlign: 'center', marginTop: '40px' }}>
+                            <div style={{ color: '#6b7280', textAlign: 'center', marginTop: '40px' }}>
                                 Click "Run Workflow" to see execution output here
                             </div>
                         ) : (
@@ -1269,14 +1317,14 @@ const WorkflowCanvasInner: React.FC = () => {
                                     key={index}
                                     style={{
                                         whiteSpace: 'pre-wrap',
-                                        color: line.includes('✅') ? '#00c853'
-                                            : line.includes('❌') ? '#f44336'
-                                                : line.includes('▶') ? '#2196f3'
-                                                    : line.includes('═') ? '#00897b'
-                                                        : line.includes('📥') ? '#ff9800'
-                                                            : line.includes('📤') ? '#4caf50'
-                                                                : line.includes('⚙️') ? '#9c27b0'
-                                                                    : '#cccccc',
+                                        color: line.includes('✅') ? '#4facfe'
+                                            : line.includes('❌') ? '#f5576c'
+                                                : line.includes('▶') ? '#667eea'
+                                                    : line.includes('═') ? '#764ba2'
+                                                        : line.includes('📥') ? '#f093fb'
+                                                            : line.includes('📤') ? '#00f2fe'
+                                                                : line.includes('⚙️') ? '#764ba2'
+                                                                    : '#a0aec0',
                                     }}
                                 >
                                     {line}

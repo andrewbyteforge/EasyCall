@@ -1,124 +1,172 @@
 /* src/styles/canvas.css */
+/* EasyCall Canvas Theme - Matching Landing Page Design */
+
+:root {
+    --canvas-primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --canvas-secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --canvas-success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --canvas-dark-bg: #0a0e27;
+    --canvas-darker-bg: #050a1e;
+    --canvas-card-bg: rgba(255, 255, 255, 0.03);
+    --canvas-card-border: rgba(255, 255, 255, 0.08);
+    --canvas-text-primary: #ffffff;
+    --canvas-text-secondary: #a0aec0;
+    --canvas-accent-purple: #667eea;
+    --canvas-accent-blue: #4facfe;
+    --canvas-accent-pink: #f093fb;
+}
 
 .react-flow {
-    background-color: #1a1a1a;
+    background-color: var(--canvas-dark-bg);
 }
 
 .react-flow__node {
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 10px;
-    border: 2px solid #333;
-    background: #2d2d2d;
-    font-family: 'Roboto', sans-serif;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s ease;
+    border: 1px solid var(--canvas-card-border);
+    background: var(--canvas-card-bg);
+    backdrop-filter: blur(20px);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .react-flow__node:hover {
-    border-color: #00897b;
-    box-shadow: 0 6px 12px rgba(0, 137, 123, 0.3);
+    border-color: rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.25);
+    transform: translateY(-2px);
 }
 
 .react-flow__node.selected {
-    border-color: #00897b;
-    box-shadow: 0 0 0 2px rgba(0, 137, 123, 0.3);
+    border-color: var(--canvas-accent-purple);
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3), 0 8px 32px rgba(102, 126, 234, 0.25);
 }
 
 .react-flow__handle {
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    border: 2px solid #333;
-    background: #00897b;
+    border: 2px solid var(--canvas-darker-bg);
+    background: var(--canvas-accent-purple);
     transition: all 0.2s ease;
 }
 
 .react-flow__handle:hover {
     width: 16px;
     height: 16px;
-    background: #4db6ac;
+    background: var(--canvas-accent-blue);
+    box-shadow: 0 0 12px rgba(79, 172, 254, 0.5);
 }
 
 .react-flow__handle-connecting {
-    background: #1976d2;
+    background: var(--canvas-accent-pink);
+    box-shadow: 0 0 12px rgba(240, 147, 251, 0.5);
 }
 
 .react-flow__edge-path {
-    stroke: #666;
+    stroke: rgba(102, 126, 234, 0.5);
     stroke-width: 2;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-    stroke: #00897b;
+    stroke: var(--canvas-accent-purple);
     stroke-width: 3;
 }
 
 .react-flow__minimap {
-    background-color: #1e1e1e;
-    border: 1px solid #333;
+    background-color: var(--canvas-darker-bg);
+    border: 1px solid var(--canvas-card-border);
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 .react-flow__controls {
-    background-color: #1e1e1e;
-    border: 1px solid #333;
-    border-radius: 8px;
+    background-color: var(--canvas-darker-bg);
+    border: 1px solid var(--canvas-card-border);
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 .react-flow__controls button {
-    background-color: #2d2d2d;
-    border-bottom: 1px solid #333;
-    color: #fff;
-    transition: background-color 0.2s;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--canvas-card-border);
+    color: var(--canvas-text-secondary);
+    transition: all 0.2s ease;
 }
 
 .react-flow__controls button:hover {
-    background-color: #3d3d3d;
+    background-color: rgba(102, 126, 234, 0.1);
+    color: var(--canvas-text-primary);
+}
+
+.react-flow__controls button svg {
+    fill: currentColor;
 }
 
 /* Node Palette Styles */
 .node-palette {
-    background-color: #1e1e1e;
-    border-right: 1px solid #333;
+    background-color: var(--canvas-darker-bg);
+    border-right: 1px solid var(--canvas-card-border);
     overflow-y: auto;
 }
 
 .node-palette-item {
-    padding: 8px 12px;
-    margin: 4px;
-    border-radius: 6px;
-    background-color: #2d2d2d;
-    border: 1px solid #333;
+    padding: 10px 14px;
+    margin: 6px;
+    border-radius: 10px;
+    background: var(--canvas-card-bg);
+    border: 1px solid var(--canvas-card-border);
     cursor: grab;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    backdrop-filter: blur(10px);
 }
 
 .node-palette-item:hover {
-    background-color: #3d3d3d;
-    border-color: #00897b;
+    background: rgba(102, 126, 234, 0.1);
+    border-color: rgba(102, 126, 234, 0.4);
     transform: translateX(4px);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
 }
 
 .node-palette-item:active {
     cursor: grabbing;
-    transform: scale(0.98);
+    transform: scale(0.98) translateX(4px);
 }
 
-/* Node Category Colors */
+/* Node Category Colors - Updated to match landing page palette */
 .node-configuration {
-    border-left: 4px solid #4a148c;
+    border-left: 4px solid var(--canvas-accent-pink);
 }
 
 .node-input {
-    border-left: 4px solid #1976d2;
+    border-left: 4px solid var(--canvas-accent-blue);
 }
 
 .node-query {
-    border-left: 4px solid #00897b;
+    border-left: 4px solid var(--canvas-accent-purple);
 }
 
 .node-output {
-    border-left: 4px solid #f57c00;
+    border-left: 4px solid #00f2fe;
+}
+
+/* Background gradient glow effects */
+.react-flow__background {
+    background:
+        radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(79, 172, 254, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(240, 147, 251, 0.04) 0%, transparent 50%);
+}
+
+/* Grid line styling */
+.react-flow__background line {
+    stroke-opacity: 1;
+}
+
+/* Make the grid more visible with a subtle glow */
+.react-flow__background pattern line {
+    stroke-linecap: round;
 }

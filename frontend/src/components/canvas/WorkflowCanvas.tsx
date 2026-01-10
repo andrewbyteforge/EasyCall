@@ -5,7 +5,7 @@
 // Supports both static nodes AND dynamic database-generated nodes.
 // =============================================================================
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
     Background,
     Controls,
@@ -50,6 +50,12 @@ import NodeHelpDialog from './NodeHelpDialog';
 
 // Custom Edge with clips
 import ClippedEdge from './ClippedEdge';
+
+// Sticky Note Node for annotations
+import StickyNoteNode, { STICKY_NOTE_COLORS } from '../nodes/StickyNoteNode';
+
+// AI Chat Sidebar
+import AIChatSidebar from './AIChatSidebar';
 
 // =============================================================================
 // CUSTOM EDGE TYPES REGISTRATION
@@ -101,6 +107,9 @@ const STATIC_NODE_TYPES: NodeTypes = {
     csv_export: BaseNode,
     pdf_export: BaseNode,
     console_log: BaseNode,
+
+    // Annotation Nodes
+    sticky_note: StickyNoteNode,
 };
 
 // =============================================================================
@@ -158,6 +167,11 @@ function areTypesCompatible(sourceType: DataType, targetType: DataType): boolean
 
 const WorkflowCanvasInner: React.FC = () => {
     // ---------------------------------------------------------------------------
+    // REACT FLOW INSTANCE - for programmatic control
+    // ---------------------------------------------------------------------------
+    const reactFlowInstance = useReactFlow();
+
+    // ---------------------------------------------------------------------------
     // EASY MODE CONTEXT
     // ---------------------------------------------------------------------------
     const { isEasyMode, toggleMode, setEasyMode } = useEasyMode();
@@ -211,6 +225,9 @@ const WorkflowCanvasInner: React.FC = () => {
     const [helpDialogOpen, setHelpDialogOpen] = useState(false);
     const [helpDialogNode, setHelpDialogNode] = useState<NodeTypeDefinition | null>(null);
 
+    // AI Chat sidebar state
+    const [showAIChat, setShowAIChat] = useState(false);
+
     // ---------------------------------------------------------------------------
     // COMPUTED PROPERTIES
     // ---------------------------------------------------------------------------
@@ -257,6 +274,39 @@ const WorkflowCanvasInner: React.FC = () => {
     }, [nodes, edges, generatedNodes]);
 
     // ---------------------------------------------------------------------------
+    // UPDATE NODE DATA - Event listener for child components (like StickyNote)
+    // ---------------------------------------------------------------------------
+
+    useEffect(() => {
+        const handleUpdateNodeData = (event: CustomEvent<{ nodeId: string; updates: Record<string, any> }>) => {
+            const { nodeId, updates } = event.detail;
+            setNodes((nds: Node[]) =>
+                nds.map((node) =>
+                    node.id === nodeId
+                        ? { ...node, data: { ...node.data, ...updates } }
+                        : node
+                )
+            );
+        };
+
+        const handleDeleteNode = (event: CustomEvent<{ nodeId: string }>) => {
+            const { nodeId } = event.detail;
+            console.log('[DELETE] Removing node via event:', nodeId);
+            setNodes((nds: Node[]) => nds.filter((node) => node.id !== nodeId));
+            setEdges((eds: Edge[]) => eds.filter(
+                (edge) => edge.source !== nodeId && edge.target !== nodeId
+            ));
+        };
+
+        window.addEventListener('updateNodeData', handleUpdateNodeData as EventListener);
+        window.addEventListener('deleteNode', handleDeleteNode as EventListener);
+        return () => {
+            window.removeEventListener('updateNodeData', handleUpdateNodeData as EventListener);
+            window.removeEventListener('deleteNode', handleDeleteNode as EventListener);
+        };
+    }, []);
+
+    // ---------------------------------------------------------------------------
     // DELETE NODE
     // ---------------------------------------------------------------------------
 
@@ -278,6 +328,33 @@ const WorkflowCanvasInner: React.FC = () => {
 
     const addNodeAtPosition = useCallback(
         (nodeType: string, position: { x: number; y: number }) => {
+            // Generate unique ID
+            const id = `${nodeType}_${Date.now()}`;
+
+            // Snap to grid (15x15 to match React Flow snap settings)
+            const snappedPosition = {
+                x: Math.round(position.x / 15) * 15,
+                y: Math.round(position.y / 15) * 15,
+            };
+
+            // Handle sticky note specially - it doesn't use BaseNode
+            if (nodeType === 'sticky_note') {
+                const stickyNode: Node = {
+                    id,
+                    type: 'sticky_note',
+                    position: snappedPosition,
+                    style: { width: 200, height: 150 },
+                    data: {
+                        text: '',
+                        color: STICKY_NOTE_COLORS[0].value,
+                        fontSize: 13,
+                    },
+                };
+                setNodes((nds: Node[]) => [...nds, stickyNode]);
+                console.log('[ADD NODE] Created: Sticky Note at', snappedPosition);
+                return;
+            }
+
             // Try to find node definition in static nodes first
             let nodeDefinition = getNodeType(nodeType);
 
@@ -326,15 +403,6 @@ const WorkflowCanvasInner: React.FC = () => {
                 console.log('Available database nodes:', generatedNodes.map(n => n.type));
                 return;
             }
-
-            // Generate unique ID
-            const id = `${nodeType}_${Date.now()}`;
-
-            // Snap to grid (15x15 to match React Flow snap settings)
-            const snappedPosition = {
-                x: Math.round(position.x / 15) * 15,
-                y: Math.round(position.y / 15) * 15,
-            };
 
             // ✅ CRITICAL: Create node with proper structure for BaseNode
             const newNode: Node = {
@@ -385,6 +453,8 @@ const WorkflowCanvasInner: React.FC = () => {
     const saveWorkflow = useCallback(async () => {
         setIsSaving(true);
         try {
+            // Get current viewport from React Flow instance for accuracy
+            const currentViewport = reactFlowInstance.getViewport();
             const workflowData = {
                 name: workflowName,
                 version: '1.0',
@@ -392,7 +462,7 @@ const WorkflowCanvasInner: React.FC = () => {
                 canvas_data: {
                     nodes,
                     edges,
-                    viewport,
+                    viewport: currentViewport,
                 },
             };
 
@@ -416,7 +486,7 @@ const WorkflowCanvasInner: React.FC = () => {
             const savedState = JSON.stringify({
                 nodes,
                 edges,
-                viewport,
+                viewport: currentViewport,
                 workflowName,
             });
             setLastSavedState(savedState);
@@ -428,7 +498,7 @@ const WorkflowCanvasInner: React.FC = () => {
         } finally {
             setIsSaving(false);
         }
-    }, [nodes, edges, viewport, workflowName]);
+    }, [nodes, edges, workflowName, reactFlowInstance]);
 
     // ---------------------------------------------------------------------------
     // LOAD WORKFLOW FROM FILE
@@ -463,7 +533,12 @@ const WorkflowCanvasInner: React.FC = () => {
 
                 setNodes(workflowData.canvas_data.nodes || []);
                 setEdges(workflowData.canvas_data.edges || []);
-                setViewport(workflowData.canvas_data.viewport || { x: 0, y: 0, zoom: 1 });
+                const savedViewport = workflowData.canvas_data.viewport || { x: 0, y: 0, zoom: 1 };
+                setViewport(savedViewport);
+                // Use React Flow's setViewport to actually update the canvas view
+                setTimeout(() => {
+                    reactFlowInstance.setViewport(savedViewport, { duration: 200 });
+                }, 50);
                 setCurrentWorkflowId(null);
                 setWorkflowName(workflowData.name);
 
@@ -492,7 +567,7 @@ const WorkflowCanvasInner: React.FC = () => {
         };
 
         reader.readAsText(file);
-    }, [hasUnsavedChanges]);
+    }, [hasUnsavedChanges, reactFlowInstance]);
 
     // ---------------------------------------------------------------------------
     // OPEN FILE PICKER
@@ -806,6 +881,54 @@ const WorkflowCanvasInner: React.FC = () => {
         console.log('[DROP] Dropped node type:', nodeType, 'at position:', position);
         addNodeAtPosition(nodeType, position);
     }, [addNodeAtPosition]);
+
+    // ---------------------------------------------------------------------------
+    // AI WORKFLOW APPLICATION - Add AI-generated nodes to canvas
+    // ---------------------------------------------------------------------------
+
+    const applyAIWorkflow = useCallback((newNodes: Node[], newEdges: Edge[]) => {
+        // Calculate offset to position new nodes to the right of existing ones
+        let maxX = 0;
+        nodes.forEach(node => {
+            const nodeRight = node.position.x + 300; // Approximate node width
+            if (nodeRight > maxX) maxX = nodeRight;
+        });
+        const offsetX = nodes.length > 0 ? maxX + 100 : 100;
+
+        // Generate new unique IDs and apply position offset
+        const timestamp = Date.now();
+        const idMapping: Record<string, string> = {};
+
+        const mappedNodes = newNodes.map((node, index) => {
+            const newId = `${node.type}_ai_${timestamp}_${index}`;
+            idMapping[node.id] = newId;
+            return {
+                ...node,
+                id: newId,
+                position: {
+                    x: (node.position?.x || 0) + offsetX,
+                    y: node.position?.y || index * 150,
+                },
+            };
+        });
+
+        // Update edge references with new IDs
+        const mappedEdges = newEdges.map((edge, index) => ({
+            ...edge,
+            id: `edge_ai_${timestamp}_${index}`,
+            source: idMapping[edge.source] || edge.source,
+            target: idMapping[edge.target] || edge.target,
+            type: 'clipped',
+            animated: true,
+            data: { clips: [] },
+        }));
+
+        // Add to existing nodes and edges
+        setNodes(prev => [...prev, ...mappedNodes]);
+        setEdges(prev => [...prev, ...mappedEdges]);
+
+        console.log(`[AI] Applied ${mappedNodes.length} nodes and ${mappedEdges.length} edges from AI`);
+    }, [nodes]);
 
     // ---------------------------------------------------------------------------
     // WORKFLOW EXECUTION - Validates and simulates data flow
@@ -1155,6 +1278,74 @@ const WorkflowCanvasInner: React.FC = () => {
                     🎨
                 </button>
 
+                {/* Add Sticky Note Button */}
+                <button
+                    onClick={() => {
+                        // Add sticky note at center of current viewport
+                        const viewport = reactFlowInstance.getViewport();
+                        const centerX = (-viewport.x + 400) / viewport.zoom;
+                        const centerY = (-viewport.y + 300) / viewport.zoom;
+                        addNodeAtPosition('sticky_note', { x: centerX, y: centerY });
+                    }}
+                    style={{
+                        padding: '8px 12px',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        color: '#f59e0b',
+                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.3s ease',
+                    }}
+                    title="Add a sticky note"
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.2)';
+                        e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.5)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+                        e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                    }}
+                >
+                    📝 Note
+                </button>
+
+                {/* AI Chat Toggle Button */}
+                <button
+                    onClick={() => setShowAIChat(!showAIChat)}
+                    style={{
+                        padding: '8px 12px',
+                        backgroundColor: showAIChat ? 'rgba(102, 126, 234, 0.2)' : 'rgba(102, 126, 234, 0.1)',
+                        color: showAIChat ? '#ffffff' : '#667eea',
+                        border: showAIChat ? '1px solid rgba(102, 126, 234, 0.5)' : '1px solid rgba(102, 126, 234, 0.3)',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.3s ease',
+                    }}
+                    title="AI Workflow Assistant"
+                    onMouseOver={(e) => {
+                        if (!showAIChat) {
+                            e.currentTarget.style.backgroundColor = 'rgba(102, 126, 234, 0.2)';
+                            e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.5)';
+                        }
+                    }}
+                    onMouseOut={(e) => {
+                        if (!showAIChat) {
+                            e.currentTarget.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
+                            e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+                        }
+                    }}
+                >
+                    🤖 AI
+                </button>
+
                 {/* Divider before mode toggle */}
                 <div style={{ width: '1px', height: '32px', backgroundColor: 'rgba(255, 255, 255, 0.08)' }} />
 
@@ -1265,9 +1456,13 @@ const WorkflowCanvasInner: React.FC = () => {
                         }}
                     />
 
-                    {/* Minimap with category colors (supports database nodes) */}
+                    {/* Minimap with category colors (supports database nodes + sticky notes) */}
                     <MiniMap
                         nodeColor={(node) => {
+                            // Special color for sticky notes
+                            if (node.type === 'sticky_note') {
+                                return '#f59e0b'; // Amber for annotations
+                            }
                             const nodeDef: NodeTypeDefinition | GeneratedNodeDefinition | undefined =
                                 getNodeType(node.type || 'default') || generatedNodes.find((n) => n.type === node.type);
                             if (nodeDef) {
@@ -1440,6 +1635,15 @@ const WorkflowCanvasInner: React.FC = () => {
                     setHelpDialogOpen(false);
                     setEasyMode(false);
                 }}
+            />
+
+            {/* AI Chat Sidebar */}
+            <AIChatSidebar
+                isOpen={showAIChat}
+                onClose={() => setShowAIChat(false)}
+                onApplyWorkflow={applyAIWorkflow}
+                existingNodes={nodes}
+                existingEdges={edges}
             />
 
         </div>

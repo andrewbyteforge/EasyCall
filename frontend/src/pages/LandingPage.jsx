@@ -26,7 +26,7 @@ import {
     Speed as SpeedIcon,
     Security as SecurityIcon,
 } from '@mui/icons-material';
-import AddProviderModal from '../components/AddProviderModal';
+import AddProviderModal from '../AddProviderModal';
 import { getStatistics } from '../services/apiService';
 
 export default function LandingPage() {

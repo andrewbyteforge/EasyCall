@@ -33,7 +33,7 @@ import {
     Error as ErrorIcon,
     Api as ApiIcon,
 } from '@mui/icons-material';
-import { uploadProvider, parseProvider, generateNodes } from '../services/apiService';
+import { uploadProvider, parseProvider, generateNodes } from './services/apiService';
 
 const steps = ['Upload Spec', 'Parse Spec', 'Generate Nodes'];
 

@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/v1/settings/', include('apps.settings_manager.urls')),
     path('api/v1/integrations/', include('apps.integrations.urls')),
     path('api/v1/dashboard/', include(('apps.dashboard.urls', 'dashboard-api'), namespace='dashboard-api')),
+    path('api/v1/ai/', include('apps.ai.urls')),
 ]

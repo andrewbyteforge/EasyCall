@@ -172,7 +172,7 @@ const STATIC_CATEGORIES: CategoryConfig[] = [
         label: 'Input',
         defaultExpanded: true,
         color: '#4facfe',  // Blue accent
-        filter: (node) => node.category === NodeCategory.INPUT,
+        filter: (node) => node.category === NodeCategory.INPUT && node.type !== 'sticky_note',
     },
     {
         key: 'chainalysis',
@@ -200,6 +200,44 @@ const OUTPUT_CATEGORY: CategoryConfig = {
     defaultExpanded: false,
     color: '#00f2fe',  // Cyan accent
     filter: (node) => node.category === NodeCategory.OUTPUT,
+};
+
+// Annotation category for sticky notes and other annotation nodes
+const ANNOTATION_CATEGORY: CategoryConfig = {
+    key: 'annotation',
+    icon: '📝',
+    label: 'Annotations',
+    defaultExpanded: true,
+    color: '#f59e0b',  // Amber accent
+    filter: (node) => node.type === 'sticky_note',
+};
+
+// Sticky note node definition for the palette
+const STICKY_NOTE_NODE: NodeTypeDefinition = {
+    type: 'sticky_note',
+    category: NodeCategory.INPUT, // Using INPUT as placeholder, filtered separately
+    provider: undefined as any,
+    name: 'Sticky Note',
+    icon: '📝',
+    color: '#f59e0b',
+    description: 'Add notes and annotations to your workflow',
+    longDescription: 'A resizable sticky note for adding comments, documentation, or reminders to your workflow canvas.',
+    visual: {
+        icon: '📝',
+        color: '#f59e0b',
+        width: 200,
+        height: 150,
+    },
+    documentation: {
+        name: 'Sticky Note',
+        description: 'Add notes and annotations to your workflow',
+        longDescription: 'A resizable sticky note for adding comments, documentation, or reminders to your workflow canvas.',
+        usage: 'Drag onto canvas → Double-click to edit → Drag corners to resize',
+        examples: ['Document workflow steps', 'Add reminders', 'Explain complex logic'],
+    },
+    inputs: [],
+    outputs: [],
+    configuration: [],
 };
 
 // =============================================================================
@@ -484,8 +522,8 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
             convertGeneratedNodeToNodeType
         );
 
-        // Merge static and dynamic nodes
-        return [...staticNodes, ...convertedGeneratedNodes];
+        // Merge static and dynamic nodes, plus annotation nodes
+        return [...staticNodes, ...convertedGeneratedNodes, STICKY_NOTE_NODE];
     }, [staticNodes, generatedNodes]);
 
     // ---------------------------------------------------------------------------
@@ -513,8 +551,8 @@ const NodePalette: React.FC<NodePaletteProps> = ({ onNodeDragStart }) => {
         // Get dynamic categories from generated nodes
         const dynamicCategories = getDynamicCategories(generatedNodes);
 
-        // Merge static categories with dynamic ones, then add Output at the end
-        return [...STATIC_CATEGORIES, ...dynamicCategories, OUTPUT_CATEGORY];
+        // Merge static categories with dynamic ones, then add Output and Annotation at the end
+        return [...STATIC_CATEGORIES, ...dynamicCategories, OUTPUT_CATEGORY, ANNOTATION_CATEGORY];
     }, [generatedNodes]);
 
     // ---------------------------------------------------------------------------

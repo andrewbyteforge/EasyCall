@@ -83,6 +83,7 @@ INSTALLED_APPS: list[str] = [
     "apps.integrations.apps.IntegrationsConfig",
     "apps.settings_manager.apps.SettingsManagerConfig",
     "apps.providers.apps.ProvidersConfig",
+    "apps.ai.apps.AiConfig",
 ]
 
 # =============================================================================
